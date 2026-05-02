@@ -1,0 +1,133 @@
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: #f7f7f5;
+  color: #1a1a1a;
+}
+
+.app {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+header h1 {
+  margin: 0 0 24px 0;
+  font-size: 24px;
+  letter-spacing: -0.5px;
+}
+
+main section {
+  background: white;
+  border: 1px solid #e2e2dc;
+  border-radius: 8px;
+  padding: 20px;
+}
+
+h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.row.end {
+  justify-content: flex-end;
+}
+
+button {
+  background: #1a1a1a;
+  color: white;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+button.link {
+  background: none;
+  color: #1a1a1a;
+  padding: 0;
+  text-decoration: underline;
+  text-align: left;
+  font-size: 15px;
+}
+
+input[type="text"], textarea {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #d4d4cc;
+  border-radius: 6px;
+  font: inherit;
+  background: white;
+}
+
+textarea {
+  resize: vertical;
+  font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+label {
+  display: block;
+  margin-bottom: 14px;
+  font-size: 13px;
+  color: #444;
+}
+
+label input, label textarea {
+  margin-top: 4px;
+}
+
+.title-input {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.editor {
+  min-height: 320px;
+}
+
+.doc-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.doc-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid #ececec;
+}
+
+.doc-list li:last-child {
+  border-bottom: none;
+}
+
+.muted {
+  color: #888;
+  font-size: 12px;
+}
+
+.error {
+  color: #b00020;
+  font-size: 13px;
+}
