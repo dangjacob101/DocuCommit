@@ -3,3 +3,5 @@ __pycache__/
 .venv/
 venv/
 documents.db
+.env
+.DS_Store
