@@ -131,3 +131,56 @@ label input, label textarea {
   color: #b00020;
   font-size: 13px;
 }
+
+.left-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.branch-picker {
+  padding: 7px 10px;
+  border: 1px solid #d4d4cc;
+  border-radius: 6px;
+  background: white;
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.doc-title {
+  margin: 8px 0 12px 0;
+  font-size: 20px;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 100;
+}
+
+.modal-card {
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  width: 100%;
+  max-width: 420px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 16px;
+}

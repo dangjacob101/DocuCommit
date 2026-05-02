@@ -1,59 +1,77 @@
-import { useState } from 'react'
-import { updateDocument } from '../api.js'
-import { emit } from '../events.js'
+import { useEffect, useState } from 'react'
+import BranchPicker from './BranchPicker.jsx'
+import CommitRevisionModal from './CommitRevisionModal.jsx'
+import NewBranchModal from './NewBranchModal.jsx'
 
-export default function Editor({ doc, onBack }) {
-  const [title, setTitle] = useState(doc.title)
-  const [content, setContent] = useState(doc.content)
-  const [baseline, setBaseline] = useState({ title: doc.title, content: doc.content })
-  const [saving, setSaving] = useState(false)
-  const [error, setError] = useState(null)
-  const [savedOnce, setSavedOnce] = useState(false)
+export default function Editor({ doc, branch, onBack, onSwitchBranch }) {
+  const [content, setContent] = useState(branch.current_content)
+  const [baseline, setBaseline] = useState(branch.current_content)
+  const [showCommit, setShowCommit] = useState(false)
+  const [showNewBranch, setShowNewBranch] = useState(false)
 
-  const dirty = title !== baseline.title || content !== baseline.content
+  useEffect(() => {
+    setContent(branch.current_content)
+    setBaseline(branch.current_content)
+  }, [branch.id])
 
-  async function save() {
-    if (!title.trim()) {
-      setError('Title is required')
-      return
-    }
-    setSaving(true)
-    setError(null)
-    try {
-      const updated = await updateDocument(doc.id, { title: title.trim(), content })
-      setBaseline({ title: updated.title, content: updated.content })
-      setTitle(updated.title)
-      setSavedOnce(true)
-      emit('document-changed')
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setSaving(false)
-    }
+  const dirty = content !== baseline
+
+  function trySwitch(next) {
+    if (next.id === branch.id) return
+    if (dirty && !window.confirm('You have uncommitted changes. Switch branches anyway?')) return
+    onSwitchBranch(next)
+  }
+
+  function handleCommitted() {
+    setBaseline(content)
+    setShowCommit(false)
+  }
+
+  function handleBranchCreated(newBranch) {
+    setShowNewBranch(false)
+    onSwitchBranch(newBranch)
   }
 
   return (
     <section>
       <div className="row">
-        <button onClick={onBack}>Back</button>
-        <button onClick={save} disabled={saving || !dirty}>
-          {saving ? 'Saving...' : 'Save'}
+        <div className="left-group">
+          <button onClick={onBack}>Back</button>
+          <BranchPicker
+            documentId={doc.id}
+            currentBranchId={branch.id}
+            onSelect={trySwitch}
+          />
+          <button onClick={() => setShowNewBranch(true)}>New Branch</button>
+        </div>
+        <button onClick={() => setShowCommit(true)} disabled={!dirty}>
+          Commit Revision
         </button>
       </div>
-      <input
-        className="title-input"
-        type="text"
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-      />
+      <h2 className="doc-title">{doc.title}</h2>
       <textarea
         className="editor"
         value={content}
         onChange={(e) => setContent(e.target.value)}
         rows={24}
       />
-      {error && <p className="error">{error}</p>}
-      {savedOnce && !dirty && !error && <p className="muted">Saved.</p>}
+      {!dirty && <p className="muted">All changes committed.</p>}
+      {showCommit && (
+        <CommitRevisionModal
+          branchId={branch.id}
+          content={content}
+          onClose={() => setShowCommit(false)}
+          onCommitted={handleCommitted}
+        />
+      )}
+      {showNewBranch && (
+        <NewBranchModal
+          documentId={doc.id}
+          sourceBranchId={branch.id}
+          onClose={() => setShowNewBranch(false)}
+          onCreated={handleBranchCreated}
+        />
+      )}
     </section>
   )
 }

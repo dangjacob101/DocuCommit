@@ -23,6 +23,22 @@ export function createDocument(title, content) {
   return send('POST', '/documents', { title, content })
 }
 
-export function updateDocument(id, fields) {
-  return send('PUT', `/documents/${id}`, fields)
+export function listBranches(documentId) {
+  return send('GET', `/documents/${documentId}/branches`)
+}
+
+export function createBranch(documentId, name, sourceBranchId) {
+  const body = { name }
+  if (sourceBranchId !== undefined && sourceBranchId !== null) {
+    body.source_branch_id = sourceBranchId
+  }
+  return send('POST', `/documents/${documentId}/branches`, body)
+}
+
+export function getBranch(branchId) {
+  return send('GET', `/branches/${branchId}`)
+}
+
+export function createCommit(branchId, message, content) {
+  return send('POST', `/branches/${branchId}/commits`, { message, content })
 }
