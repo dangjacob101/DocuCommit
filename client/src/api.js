@@ -42,3 +42,7 @@ export function getBranch(branchId) {
 export function createCommit(branchId, message, content) {
   return send('POST', `/branches/${branchId}/commits`, { message, content })
 }
+
+export function listCommits(branchId) {
+  return send('GET', `/branches/${branchId}/commits`)
+}
