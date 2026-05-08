@@ -44,6 +44,11 @@ Launching software in this space would be interesting since it shifts the paradi
   - The user can toggle a "Compare to Main" view.
   - The React frontend renders the text comparison: newly added words are highlighted in green, and removed words are struck through and highlighted in red.
 
+**Diff API**
+
+- `POST /documents/diff` accepts JSON with `source_document_id` and `target_document_id`.
+- The response includes source/target document metadata, word-level diff chunks, add/remove/unchanged counts, and a unified diff string for debugging or plain-text display.
+
 **Clean Merging** (Depends on Story 3 & 4)
 
 - **Story:** As a lead drafter, I want to merge a finalized branch back into the main document so that the official contract is updated.
