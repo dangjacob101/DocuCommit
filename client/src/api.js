@@ -59,3 +59,7 @@ export function diffBranch(branchId, ignoreWhitespace = false) {
 export function mergeBranch(branchId) {
   return send('POST', `/api/branches/${branchId}/merge`)
 }
+
+export function listCommits(branchId) {
+  return send('GET', `/branches/${branchId}/commits`)
+}
