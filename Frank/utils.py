@@ -1,23 +1,10 @@
-from difflib import unified_diff
+from diff_engine import make_diff, compute_visual_diff  # noqa: F401
 
 
 def _ensure_trailing_newline(text: str) -> str:
     if text and not text.endswith("\n"):
         return text + "\n"
     return text
-
-
-def make_diff(old_text: str, new_text: str) -> str:
-    """Produce a unified diff patch from old_text to new_text."""
-    old_norm = _ensure_trailing_newline(old_text)
-    new_norm = _ensure_trailing_newline(new_text)
-    lines = unified_diff(
-        old_norm.splitlines(keepends=True),
-        new_norm.splitlines(keepends=True),
-        fromfile="previous",
-        tofile="current",
-    )
-    return "".join(lines)
 
 
 def apply_patch(text: str, patch: str) -> str:
