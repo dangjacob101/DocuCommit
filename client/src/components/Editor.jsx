@@ -1,25 +1,46 @@
 import { useEffect, useState } from 'react'
+import { useParams, useNavigate } from 'react-router-dom'
+import { getDocument, listBranches } from '../api.js'
+import { slugify } from '../utils.js'
 import BranchPicker from './BranchPicker.jsx'
 import CommitRevisionModal from './CommitRevisionModal.jsx'
 import NewBranchModal from './NewBranchModal.jsx'
 
-export default function Editor({ doc, branch, onBack, onSwitchBranch }) {
-  const [content, setContent] = useState(branch.current_content)
-  const [baseline, setBaseline] = useState(branch.current_content)
+export default function Editor() {
+  const { docId, branchName } = useParams()
+  const navigate = useNavigate()
+
+  const [doc, setDoc] = useState(null)
+  const [branch, setBranch] = useState(null)
+  const [content, setContent] = useState('')
+  const [baseline, setBaseline] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
   const [showCommit, setShowCommit] = useState(false)
   const [showNewBranch, setShowNewBranch] = useState(false)
 
   useEffect(() => {
-    setContent(branch.current_content)
-    setBaseline(branch.current_content)
-  }, [branch.id])
+    setLoading(true)
+    setError(null)
+    Promise.all([getDocument(parseInt(docId)), listBranches(parseInt(docId))])
+      .then(([docData, branches]) => {
+        const branchData = branches.find(b => slugify(b.name) === branchName)
+        if (!branchData) throw new Error(`Branch "${branchName}" not found`)
+        setDoc(docData)
+        setBranch(branchData)
+        setContent(branchData.current_content)
+        setBaseline(branchData.current_content)
+      })
+      .catch(e => setError(e.message))
+      .finally(() => setLoading(false))
+  }, [docId, branchName])
 
   const dirty = content !== baseline
 
   function trySwitch(next) {
-    if (next.id === branch.id) return
+    if (slugify(next.name) === branchName) return
     if (dirty && !window.confirm('You have uncommitted changes. Switch branches anyway?')) return
-    onSwitchBranch(next)
+    navigate(`/${slugify(doc.title)}/${docId}/branches/${slugify(next.name)}`)
   }
 
   function handleCommitted() {
@@ -29,16 +50,19 @@ export default function Editor({ doc, branch, onBack, onSwitchBranch }) {
 
   function handleBranchCreated(newBranch) {
     setShowNewBranch(false)
-    onSwitchBranch(newBranch)
+    navigate(`/${slugify(doc.title)}/${docId}/branches/${slugify(newBranch.name)}`)
   }
+
+  if (loading) return <p className="muted">Loading...</p>
+  if (error) return <p className="error">{error}</p>
 
   return (
     <section>
       <div className="row">
         <div className="left-group">
-          <button onClick={onBack}>Back</button>
+          <button onClick={() => navigate('/')}>Back</button>
           <BranchPicker
-            documentId={doc.id}
+            documentId={parseInt(docId)}
             currentBranchId={branch.id}
             onSelect={trySwitch}
           />
@@ -66,7 +90,7 @@ export default function Editor({ doc, branch, onBack, onSwitchBranch }) {
       )}
       {showNewBranch && (
         <NewBranchModal
-          documentId={doc.id}
+          documentId={parseInt(docId)}
           sourceBranchId={branch.id}
           onClose={() => setShowNewBranch(false)}
           onCreated={handleBranchCreated}

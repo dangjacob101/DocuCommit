@@ -16,9 +16,9 @@ def create_app():
     from routes.branches import branches_bp
     from routes.merge import merge_bp
 
-    app.register_blueprint(documents_bp)
-    app.register_blueprint(branches_bp)
-    app.register_blueprint(merge_bp)
+    app.register_blueprint(documents_bp, url_prefix='/api')
+    app.register_blueprint(branches_bp, url_prefix='/api')
+    app.register_blueprint(merge_bp, url_prefix='/api')
 
     with app.app_context():
         db.create_all()

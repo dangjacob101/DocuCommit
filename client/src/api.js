@@ -12,19 +12,19 @@ async function send(method, path, body) {
 }
 
 export function listDocuments() {
-  return send('GET', '/documents')
+  return send('GET', '/api/documents')
 }
 
 export function getDocument(id) {
-  return send('GET', `/documents/${id}`)
+  return send('GET', `/api/documents/${id}`)
 }
 
 export function createDocument(title, content) {
-  return send('POST', '/documents', { title, content })
+  return send('POST', '/api/documents', { title, content })
 }
 
 export function listBranches(documentId) {
-  return send('GET', `/documents/${documentId}/branches`)
+  return send('GET', `/api/documents/${documentId}/branches`)
 }
 
 export function createBranch(documentId, name, sourceBranchId) {
@@ -32,13 +32,13 @@ export function createBranch(documentId, name, sourceBranchId) {
   if (sourceBranchId !== undefined && sourceBranchId !== null) {
     body.source_branch_id = sourceBranchId
   }
-  return send('POST', `/documents/${documentId}/branches`, body)
+  return send('POST', `/api/documents/${documentId}/branches`, body)
 }
 
 export function getBranch(branchId) {
-  return send('GET', `/branches/${branchId}`)
+  return send('GET', `/api/branches/${branchId}`)
 }
 
 export function createCommit(branchId, message, content) {
-  return send('POST', `/branches/${branchId}/commits`, { message, content })
+  return send('POST', `/api/branches/${branchId}/commits`, { message, content })
 }

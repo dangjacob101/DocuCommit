@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
-import { listDocuments } from '../api.js'
-import { emit, on, off } from '../events.js'
+import { useNavigate } from 'react-router-dom'
+import { listDocuments, listBranches } from '../api.js'
+import { slugify } from '../utils.js'
 
-export default function DocumentDashboard({ onNew }) {
+export default function DocumentDashboard() {
+  const navigate = useNavigate()
   const [docs, setDocs] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -22,16 +24,23 @@ export default function DocumentDashboard({ onNew }) {
 
   useEffect(() => {
     load()
-    const refresh = () => load()
-    on('document-changed', refresh)
-    return () => off('document-changed', refresh)
   }, [])
+
+  async function openDocument(doc) {
+    try {
+      const branches = await listBranches(doc.id)
+      const main = branches.find(b => b.name === 'Main') || branches[0]
+      navigate(`/${slugify(doc.title)}/${doc.id}/branches/${slugify(main.name)}`)
+    } catch (e) {
+      setError(e.message)
+    }
+  }
 
   return (
     <section>
       <div className="row">
         <h2>Documents</h2>
-        <button onClick={onNew}>New Document</button>
+        <button onClick={() => navigate('/create-new-document')}>New Document</button>
       </div>
       {loading && <p className="muted">Loading...</p>}
       {error && <p className="error">{error}</p>}
@@ -43,7 +52,7 @@ export default function DocumentDashboard({ onNew }) {
           <li key={d.id}>
             <button
               className="link"
-              onClick={() => emit('open-document', d)}
+              onClick={() => openDocument(d)}
             >
               {d.title}
             </button>

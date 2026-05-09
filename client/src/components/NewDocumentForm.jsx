@@ -1,8 +1,10 @@
 import { useState } from 'react'
-import { createDocument } from '../api.js'
-import { emit } from '../events.js'
+import { useNavigate } from 'react-router-dom'
+import { createDocument, listBranches } from '../api.js'
+import { slugify } from '../utils.js'
 
-export default function NewDocumentForm({ onCancel, onCreated }) {
+export default function NewDocumentForm() {
+  const navigate = useNavigate()
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
   const [saving, setSaving] = useState(false)
@@ -18,11 +20,11 @@ export default function NewDocumentForm({ onCancel, onCreated }) {
     setError(null)
     try {
       const doc = await createDocument(title.trim(), content)
-      emit('document-changed')
-      onCreated(doc)
+      const branches = await listBranches(doc.id)
+      const main = branches.find(b => b.name === 'Main') || branches[0]
+      navigate(`/${slugify(title)}/${doc.id}/branches/${slugify(main.name)}`)
     } catch (err) {
       setError(err.message)
-    } finally {
       setSaving(false)
     }
   }
@@ -53,7 +55,7 @@ export default function NewDocumentForm({ onCancel, onCreated }) {
         </label>
         {error && <p className="error">{error}</p>}
         <div className="row end">
-          <button type="button" onClick={onCancel} disabled={saving}>
+          <button type="button" onClick={() => navigate('/')} disabled={saving}>
             Cancel
           </button>
           <button type="submit" disabled={saving}>
