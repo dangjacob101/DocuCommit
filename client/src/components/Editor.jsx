@@ -6,6 +6,7 @@ import RichEditor from './RichEditor.jsx'
 import BranchPicker from './BranchPicker.jsx'
 import CommitRevisionModal from './CommitRevisionModal.jsx'
 import NewBranchModal from './NewBranchModal.jsx'
+import CommitHistorySidebar from './CommitHistorySidebar.jsx'
 
 export default function Editor() {
   const { docId, branchName } = useParams()
@@ -84,12 +85,18 @@ export default function Editor() {
         </div>
       </div>
       <h2 className="doc-title">{doc.title}</h2>
-      <RichEditor
-        content={baseline}
-        onUpdate={setContent}
-        placeholder="Start typing the document..."
-      />
-      {!dirty && <p className="muted">All changes committed.</p>}
+      <div className="editor-layout">
+        <div className="editor-main">
+          <textarea
+            className="editor"
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            rows={24}
+          />
+          {!dirty && <p className="muted">All changes committed.</p>}
+        </div>
+        <CommitHistorySidebar branchId={branch.id} />
+      </div>
       {showCommit && (
         <CommitRevisionModal
           branchId={branch.id}

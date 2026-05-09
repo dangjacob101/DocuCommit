@@ -153,6 +153,54 @@ label input, label textarea {
   font-size: 20px;
 }
 
+.editor-layout {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.editor-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.commit-history {
+  width: 240px;
+  flex-shrink: 0;
+  border-left: 1px solid #ececec;
+  padding-left: 16px;
+}
+
+.commit-history h3 {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+}
+
+.commit-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.commit-item {
+  padding: 8px 0;
+  border-bottom: 1px solid #f0f0ec;
+}
+
+.commit-item:last-child {
+  border-bottom: none;
+}
+
+.commit-message {
+  font-size: 13px;
+  margin-bottom: 2px;
+}
+
+.commit-meta {
+  display: flex;
+  gap: 8px;
+}
+
 .modal-backdrop {
   position: fixed;
   inset: 0;
