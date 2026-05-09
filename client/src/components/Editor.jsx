@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import BranchPicker from './BranchPicker.jsx'
 import CommitRevisionModal from './CommitRevisionModal.jsx'
 import NewBranchModal from './NewBranchModal.jsx'
+import CommitHistorySidebar from './CommitHistorySidebar.jsx'
 
 export default function Editor({ doc, branch, onBack, onSwitchBranch }) {
   const [content, setContent] = useState(branch.current_content)
@@ -49,13 +50,18 @@ export default function Editor({ doc, branch, onBack, onSwitchBranch }) {
         </button>
       </div>
       <h2 className="doc-title">{doc.title}</h2>
-      <textarea
-        className="editor"
-        value={content}
-        onChange={(e) => setContent(e.target.value)}
-        rows={24}
-      />
-      {!dirty && <p className="muted">All changes committed.</p>}
+      <div className="editor-layout">
+        <div className="editor-main">
+          <textarea
+            className="editor"
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            rows={24}
+          />
+          {!dirty && <p className="muted">All changes committed.</p>}
+        </div>
+        <CommitHistorySidebar branchId={branch.id} />
+      </div>
       {showCommit && (
         <CommitRevisionModal
           branchId={branch.id}
