@@ -362,9 +362,7 @@ label input, label textarea {
 
 /* ─── Diff Viewer ─────────────────────────────────────────────────────────── */
 
-.diff-page {
-  /* let the diff table be wider than the normal 880px editor column */
-}
+
 
 .diff-heading {
   margin: 0;
