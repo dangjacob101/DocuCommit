@@ -47,14 +47,22 @@ export default function RichEditor({ content, onUpdate, placeholder }) {
     ],
     content: content || '',
     onUpdate: ({ editor }) => {
-      onUpdate(editor.getHTML())
+      onUpdate(JSON.stringify(editor.getJSON()))
     },
   })
 
   // Sync external content changes (e.g. branch switch)
   useEffect(() => {
-    if (editor && content !== editor.getHTML()) {
-      editor.commands.setContent(content || '', false)
+    if (!editor) return
+    let incoming
+    try {
+      incoming = content ? JSON.parse(content) : ''
+    } catch {
+      incoming = content || ''
+    }
+    const current = JSON.stringify(editor.getJSON())
+    if (content !== current) {
+      editor.commands.setContent(incoming, false)
     }
   }, [content])
 

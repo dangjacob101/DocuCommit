@@ -69,9 +69,19 @@ export default function Editor() {
           />
           <button onClick={() => setShowNewBranch(true)}>New Branch</button>
         </div>
-        <button onClick={() => setShowCommit(true)} disabled={!dirty}>
-          Commit Revision
-        </button>
+        <div className="left-group">
+          {!branch.is_main && (
+            <button
+              id="compare-to-main-btn"
+              onClick={() => navigate(`/${slugify(doc.title)}/${docId}/branches/${branchName}/diff`)}
+            >
+              Compare to Main
+            </button>
+          )}
+          <button onClick={() => setShowCommit(true)} disabled={!dirty}>
+            Commit Revision
+          </button>
+        </div>
       </div>
       <h2 className="doc-title">{doc.title}</h2>
       <RichEditor

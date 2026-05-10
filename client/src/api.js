@@ -42,3 +42,16 @@ export function getBranch(branchId) {
 export function createCommit(branchId, message, content) {
   return send('POST', `/api/branches/${branchId}/commits`, { message, content })
 }
+
+export function listCommits(branchId) {
+  return send('GET', `/api/branches/${branchId}/commits`)
+}
+
+export function diffBranch(branchId, ignoreWhitespace = false) {
+  const qs = ignoreWhitespace ? '?w=1' : ''
+  return send('GET', `/api/branches/${branchId}/diff${qs}`)
+}
+
+export function mergeBranch(branchId) {
+  return send('POST', `/api/branches/${branchId}/merge`)
+}

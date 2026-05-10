@@ -1,4 +1,84 @@
+import json as _json
+import re as _re
+
 from diff_engine import make_diff, compute_visual_diff  # noqa: F401
+
+
+def extract_plain_text(content: str) -> str:
+    """Extract human-readable plain text from a TipTap JSON string or raw HTML.
+
+    TipTap stores documents as ProseMirror JSON.  We walk the node tree and
+    concatenate text leaves, inserting newlines at block boundaries so the
+    Myers diff algorithm sees prose lines rather than serialized JSON tokens.
+
+    Falls back to a simple HTML-tag strip for legacy HTML content.
+
+    All extracted lines are normalized before being returned:
+      - surrounding whitespace is stripped
+      - internal runs of whitespace are collapsed to a single space
+      - blank lines are dropped
+    This ensures invisible differences (trailing spaces, mixed whitespace from
+    HTML vs JSON paths) never show up as false-positive modifications.
+    """
+    if not content:
+        return ""
+
+    try:
+        doc = _json.loads(content)
+        lines = []
+        _collect_text(doc, lines)
+        raw_lines = lines
+    except (ValueError, TypeError):
+        # Not JSON — strip HTML tags for legacy content
+        text = _re.sub(r"<[^>]+>", "\n", content)
+        raw_lines = text.splitlines()
+
+    normalized = []
+    for line in raw_lines:
+        # Strip surrounding whitespace, then collapse internal runs
+        clean = _re.sub(r"\s+", " ", line).strip()
+        if clean:
+            normalized.append(clean)
+
+    return "\n".join(normalized)
+
+
+# Block-level node types that should be rendered as separate lines.
+_BLOCK_NODES = {
+    "paragraph", "heading", "blockquote", "codeBlock",
+    "bulletList", "orderedList", "listItem",
+    "horizontalRule", "hardBreak",
+}
+
+
+def _collect_text(node, lines, _current=None):
+    """Recursively walk a ProseMirror node tree, filling *lines*."""
+    if not isinstance(node, dict):
+        return
+
+    node_type = node.get("type", "")
+
+    if node_type == "text":
+        text = node.get("text", "")
+        if _current is not None:
+            _current.append(text)
+        else:
+            lines.append(text)
+        return
+
+    is_block = node_type in _BLOCK_NODES
+
+    if is_block:
+        buf = []
+        for child in node.get("content") or []:
+            _collect_text(child, lines, buf)
+        line = "".join(buf).strip()
+        if line:
+            lines.append(line)
+    else:
+        # Inline / doc / unknown — keep accumulating into parent buffer
+        for child in node.get("content") or []:
+            _collect_text(child, lines, _current)
 
 
 def _ensure_trailing_newline(text: str) -> str:

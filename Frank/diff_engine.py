@@ -297,13 +297,21 @@ def compute_visual_diff(old_text: str, new_text: str):
                 for j in range(max(len(deletes), len(inserts))):
                     old_line = deletes[j] if j < len(deletes) else ""
                     new_line = inserts[j] if j < len(inserts) else ""
-                    words = compute_word_diff(old_line, new_line)
-                    result.append({
-                        "type": "modify",
-                        "old": old_line,
-                        "new": new_line,
-                        "words": [(w[0], w[1]) for w in words],
-                    })
+                    if old_line and new_line:
+                        # Both sides have content: a true modification
+                        words = compute_word_diff(old_line, new_line)
+                        result.append({
+                            "type": "modify",
+                            "old": old_line,
+                            "new": new_line,
+                            "words": [(w[0], w[1]) for w in words],
+                        })
+                    elif old_line:
+                        # Extra delete with no matching insert
+                        result.append({"type": "delete", "content": old_line})
+                    elif new_line:
+                        # Extra insert with no matching delete
+                        result.append({"type": "insert", "content": new_line})
             else:
                 for line in deletes:
                     result.append({"type": "delete", "content": line})

@@ -1,7 +1,7 @@
 from flask import Blueprint, jsonify, request
 
 from models import db, Document, Branch, Commit
-from utils import make_diff, reconstruct_branch_content
+from utils import compute_visual_diff, make_diff, reconstruct_branch_content, extract_plain_text
 
 branches_bp = Blueprint("branches", __name__)
 
@@ -135,3 +135,72 @@ def list_commits(branch_id):
 
     commits = Commit.query.filter_by(branch_id=branch_id).order_by(Commit.id).all()
     return jsonify([commit_to_dict(c) for c in commits])
+
+
+@branches_bp.route("/branches/<int:branch_id>/diff", methods=["GET"])
+def diff_branch_vs_main(branch_id):
+    """Compare a branch against its document's Main branch.
+
+    Returns the same visual_diff payload shape as POST /documents/diff so the
+    frontend can use a single DiffViewer component for both surfaces.
+
+    Query params:
+        w=1  Ignore whitespace differences (like GitHub's ?w=1).
+    """
+    branch = Branch.query.get(branch_id)
+    if branch is None:
+        return jsonify({"error": "branch not found"}), 404
+
+    main_branch = Branch.query.filter_by(
+        document_id=branch.document_id, is_main=True
+    ).first()
+    if main_branch is None:
+        return jsonify({"error": "main branch not found"}), 500
+
+    main_raw = reconstruct_branch_content(main_branch)
+    branch_raw = reconstruct_branch_content(branch)
+
+    # Diff on readable prose, not raw JSON / HTML
+    main_text = extract_plain_text(main_raw)
+    branch_text = extract_plain_text(branch_raw)
+
+    visual_diff = compute_visual_diff(main_text, branch_text)
+
+    # GitHub-style: ?w=1 reclassifies whitespace-only changes as "equal"
+    ignore_ws = request.args.get("w") == "1"
+    if ignore_ws:
+        import re
+        def _strip_ws(s):
+            return re.sub(r"\s+", "", s)
+
+        for row in visual_diff:
+            if row["type"] == "modify":
+                old_stripped = _strip_ws(row.get("old", ""))
+                new_stripped = _strip_ws(row.get("new", ""))
+                if old_stripped == new_stripped:
+                    # Whitespace-only change — reclassify as equal
+                    row["type"] = "equal"
+                    row["content"] = row["new"]
+                    row.pop("old", None)
+                    row.pop("new", None)
+                    row.pop("words", None)
+
+    summary = {"added": 0, "removed": 0, "unchanged": 0, "modified": 0}
+    for row in visual_diff:
+        t = row["type"]
+        if t == "equal":
+            summary["unchanged"] += 1
+        elif t == "insert":
+            summary["added"] += 1
+        elif t == "delete":
+            summary["removed"] += 1
+        elif t == "modify":
+            summary["modified"] += 1
+
+    return jsonify({
+        "branch": {"id": branch.id, "name": branch.name},
+        "main": {"id": main_branch.id, "name": main_branch.name},
+        "ignore_whitespace": ignore_ws,
+        "summary": summary,
+        "visual_diff": visual_diff,
+    })
