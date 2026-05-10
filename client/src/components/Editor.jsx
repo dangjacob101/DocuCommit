@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { getDocument, listBranches } from '../api.js'
 import { slugify } from '../utils.js'
+import RichEditor from './RichEditor.jsx'
 import BranchPicker from './BranchPicker.jsx'
 import CommitRevisionModal from './CommitRevisionModal.jsx'
 import NewBranchModal from './NewBranchModal.jsx'
@@ -73,11 +74,10 @@ export default function Editor() {
         </button>
       </div>
       <h2 className="doc-title">{doc.title}</h2>
-      <textarea
-        className="editor"
-        value={content}
-        onChange={(e) => setContent(e.target.value)}
-        rows={24}
+      <RichEditor
+        content={baseline}
+        onUpdate={setContent}
+        placeholder="Start typing the document..."
       />
       {!dirty && <p className="muted">All changes committed.</p>}
       {showCommit && (

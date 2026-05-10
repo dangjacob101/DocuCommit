@@ -184,3 +184,178 @@ label input, label textarea {
   margin: 0;
   font-size: 16px;
 }
+
+/* ─── Rich Text Editor ─── */
+
+.rich-editor-wrapper {
+  border: 1px solid #d4d4cc;
+  border-radius: 8px;
+  overflow: hidden;
+  background: white;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 10px;
+  background: #fafaf8;
+  border-bottom: 1px solid #e2e2dc;
+}
+
+.toolbar-btn {
+  background: none;
+  color: #444;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  padding: 5px 8px;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1;
+  cursor: pointer;
+  min-width: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.toolbar-btn:hover:not(:disabled) {
+  background: #eaeae6;
+  border-color: #d4d4cc;
+  color: #1a1a1a;
+}
+
+.toolbar-btn.active {
+  background: #e0e0da;
+  border-color: #c8c8c0;
+  color: #1a1a1a;
+}
+
+.toolbar-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  background: none;
+  border-color: transparent;
+}
+
+.toolbar-divider {
+  display: inline-block;
+  width: 1px;
+  height: 20px;
+  background: #d4d4cc;
+  margin: 0 6px;
+  flex-shrink: 0;
+}
+
+/* TipTap editor content area */
+
+.rich-editor-content .tiptap {
+  min-height: 400px;
+  padding: 20px 24px;
+  outline: none;
+  font-family: 'Georgia', 'Times New Roman', serif;
+  font-size: 15px;
+  line-height: 1.7;
+  color: #1a1a1a;
+}
+
+.rich-editor-content .tiptap > *:first-child {
+  margin-top: 0;
+}
+
+.rich-editor-content .tiptap p {
+  margin: 0 0 0.75em 0;
+}
+
+.rich-editor-content .tiptap h1 {
+  font-size: 26px;
+  font-weight: 700;
+  margin: 1.2em 0 0.5em 0;
+  line-height: 1.3;
+}
+
+.rich-editor-content .tiptap h2 {
+  font-size: 21px;
+  font-weight: 600;
+  margin: 1em 0 0.4em 0;
+  line-height: 1.35;
+}
+
+.rich-editor-content .tiptap h3 {
+  font-size: 17px;
+  font-weight: 600;
+  margin: 0.9em 0 0.4em 0;
+  line-height: 1.4;
+}
+
+.rich-editor-content .tiptap ul,
+.rich-editor-content .tiptap ol {
+  padding-left: 24px;
+  margin: 0.5em 0;
+}
+
+.rich-editor-content .tiptap li {
+  margin: 0.25em 0;
+}
+
+.rich-editor-content .tiptap blockquote {
+  border-left: 3px solid #c8c8c0;
+  margin: 0.75em 0;
+  padding: 0.5em 0 0.5em 16px;
+  color: #555;
+  font-style: italic;
+}
+
+.rich-editor-content .tiptap hr {
+  border: none;
+  border-top: 1px solid #e2e2dc;
+  margin: 1.5em 0;
+}
+
+.rich-editor-content .tiptap code {
+  background: #f0f0ec;
+  border-radius: 3px;
+  padding: 2px 5px;
+  font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 0.9em;
+}
+
+.rich-editor-content .tiptap pre {
+  background: #1a1a1a;
+  color: #e6e6e6;
+  border-radius: 6px;
+  padding: 14px 18px;
+  margin: 0.75em 0;
+  overflow-x: auto;
+}
+
+.rich-editor-content .tiptap pre code {
+  background: none;
+  padding: 0;
+  color: inherit;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.rich-editor-content .tiptap sup {
+  font-size: 0.75em;
+  vertical-align: super;
+}
+
+.rich-editor-content .tiptap sub {
+  font-size: 0.75em;
+  vertical-align: sub;
+}
+
+/* TipTap placeholder */
+.rich-editor-content .tiptap p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: #aaa;
+  pointer-events: none;
+  height: 0;
+  font-style: italic;
+}
+

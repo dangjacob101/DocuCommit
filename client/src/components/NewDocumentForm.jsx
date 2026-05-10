@@ -58,7 +58,7 @@ export default function NewDocumentForm() {
           <button type="button" onClick={() => navigate('/')} disabled={saving}>
             Cancel
           </button>
-          <button type="submit" disabled={saving}>
+          <button type="submit" disabled={!title.trim() || saving}>
             {saving ? 'Saving...' : 'Save'}
           </button>
         </div>
