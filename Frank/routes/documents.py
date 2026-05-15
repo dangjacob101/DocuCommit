@@ -27,6 +27,20 @@ def document_to_dict(doc):
     }
 
 
+def document_commit_to_dict(
+    commit_id, branch_id, branch_name, is_main, message, diff_patch, created_at
+):
+    return {
+        "id": commit_id,
+        "branch_id": branch_id,
+        "branch_name": branch_name,
+        "branch_is_main": is_main,
+        "message": message,
+        "diff_patch": diff_patch,
+        "created_at": created_at.isoformat() if created_at else None,
+    }
+
+
 def get_required_int(data, keys):
     for key in keys:
         value = data.get(key)
@@ -161,6 +175,35 @@ def get_document(doc_id):
     if doc is None:
         return jsonify({"error": "document not found"}), 404
     return jsonify(document_to_dict(doc))
+
+
+@documents_bp.route("/documents/<int:doc_id>/commits", methods=["GET"])
+def list_document_commits(doc_id):
+    doc_exists = (
+        Document.query.with_entities(Document.id)
+        .filter(Document.id == doc_id)
+        .first()
+    )
+    if doc_exists is None:
+        return jsonify({"error": "document not found"}), 404
+
+    rows = (
+        db.session.query(
+            Commit.id,
+            Commit.branch_id,
+            Branch.name,
+            Branch.is_main,
+            Commit.message,
+            Commit.diff_patch,
+            Commit.created_at,
+        )
+        .join(Branch, Commit.branch_id == Branch.id)
+        .filter(Branch.document_id == doc_id)
+        .order_by(Commit.id)
+        .all()
+    )
+
+    return jsonify([document_commit_to_dict(*row) for row in rows])
 
 
 @documents_bp.route("/documents/<int:doc_id>", methods=["PUT"])

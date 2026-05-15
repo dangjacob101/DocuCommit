@@ -58,7 +58,11 @@ class Branch(db.Model):
         order_by="Commit.id",
     )
 
-    __table_args__ = (db.UniqueConstraint("document_id", "name"),)
+    __table_args__ = (
+        db.UniqueConstraint("document_id", "name"),
+        db.Index("ix_branches_document_main", "document_id", "is_main"),
+        db.Index("ix_branches_document_id", "document_id", "id"),
+    )
 
 
 class Commit(db.Model):
@@ -73,3 +77,11 @@ class Commit(db.Model):
     branch = db.relationship(
         "Branch", back_populates="commits", foreign_keys=[branch_id]
     )
+
+    __table_args__ = (db.Index("ix_commits_branch_id", "branch_id", "id"),)
+
+
+def create_missing_indexes():
+    for table in (Branch.__table__, Commit.__table__):
+        for index in table.indexes:
+            index.create(bind=db.engine, checkfirst=True)

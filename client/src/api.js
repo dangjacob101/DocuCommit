@@ -19,6 +19,10 @@ export function getDocument(id) {
   return send('GET', `/api/documents/${id}`)
 }
 
+export function listDocumentCommits(documentId) {
+  return send('GET', `/api/documents/${documentId}/commits`)
+}
+
 export function createDocument(title, content) {
   return send('POST', '/api/documents', { title, content })
 }

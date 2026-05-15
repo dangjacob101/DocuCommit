@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import {
   listDocuments,
   getDocument,
+  listDocumentCommits,
   createDocument,
   listBranches,
   createBranch,
@@ -36,6 +37,15 @@ describe('getDocument()', () => {
     const result = await getDocument(5)
     expect(fetch).toHaveBeenCalledWith('/api/documents/5', expect.any(Object))
     expect(result.title).toBe('Contract')
+  })
+})
+
+describe('listDocumentCommits()', () => {
+  it('calls GET /api/documents/:id/commits', async () => {
+    global.fetch = mockFetch(200, [{ id: 9, branch_name: 'Main' }])
+    const result = await listDocumentCommits(5)
+    expect(fetch).toHaveBeenCalledWith('/api/documents/5/commits', expect.any(Object))
+    expect(result[0].id).toBe(9)
   })
 })
 
