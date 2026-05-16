@@ -1,10 +1,23 @@
+:root {
+  --bg: #f7f7f5;
+  --surface: #ffffff;
+  --text: #1a1a1a;
+  --text-soft: #555;
+  --text-muted: #888;
+  --border: #e2e2dc;
+  --border-soft: #ececec;
+  --input-border: #d4d4cc;
+  --radius: 6px;
+  --radius-lg: 8px;
+}
+
 * { box-sizing: border-box; }
 
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background: #f7f7f5;
-  color: #1a1a1a;
+  background: var(--bg);
+  color: var(--text);
 }
 
 .app {
@@ -20,9 +33,9 @@ header h1 {
 }
 
 main section {
-  background: white;
-  border: 1px solid #e2e2dc;
-  border-radius: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
   padding: 20px;
 }
 
@@ -44,11 +57,11 @@ h2 {
 }
 
 button {
-  background: #1a1a1a;
+  background: var(--text);
   color: white;
   border: none;
   padding: 8px 14px;
-  border-radius: 6px;
+  border-radius: var(--radius);
   font-size: 14px;
   cursor: pointer;
 }
@@ -60,7 +73,7 @@ button:disabled {
 
 button.link {
   background: none;
-  color: #1a1a1a;
+  color: var(--text);
   padding: 0;
   text-decoration: underline;
   text-align: left;
@@ -70,10 +83,10 @@ button.link {
 input[type="text"], textarea {
   width: 100%;
   padding: 8px 10px;
-  border: 1px solid #d4d4cc;
-  border-radius: 6px;
+  border: 1px solid var(--input-border);
+  border-radius: var(--radius);
   font: inherit;
-  background: white;
+  background: var(--surface);
 }
 
 textarea {
@@ -115,7 +128,7 @@ label input, label textarea {
   justify-content: space-between;
   align-items: center;
   padding: 10px 0;
-  border-bottom: 1px solid #ececec;
+  border-bottom: 1px solid var(--border-soft);
 }
 
 .doc-list li:last-child {
@@ -123,13 +136,25 @@ label input, label textarea {
 }
 
 .muted {
-  color: #888;
+  color: var(--text-muted);
   font-size: 12px;
 }
 
 .error {
   color: #b00020;
   font-size: 13px;
+  background: #fdecee;
+  border: 1px solid #f3c4c8;
+  border-radius: var(--radius);
+  padding: 8px 12px;
+  margin: 8px 0;
+}
+
+.error-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .left-group {
@@ -139,18 +164,39 @@ label input, label textarea {
 }
 
 .branch-picker {
-  padding: 7px 10px;
-  border: 1px solid #d4d4cc;
-  border-radius: 6px;
-  background: white;
+  padding: 8px 10px;
+  border: 1px solid var(--input-border);
+  border-radius: var(--radius);
+  background: var(--surface);
   font: inherit;
   font-size: 14px;
   cursor: pointer;
 }
 
+.branch-picker.on-main {
+  font-weight: 600;
+}
+
 .doc-title {
   margin: 8px 0 12px 0;
   font-size: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.doc-title-branch {
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.dirty-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #e0922b;
 }
 
 .editor-layout {
@@ -167,7 +213,7 @@ label input, label textarea {
 .commit-history {
   width: 240px;
   flex-shrink: 0;
-  border-left: 1px solid #ececec;
+  border-left: 1px solid var(--border-soft);
   padding-left: 16px;
 }
 
@@ -184,7 +230,7 @@ label input, label textarea {
 
 .commit-item {
   padding: 8px 0;
-  border-bottom: 1px solid #f0f0ec;
+  border-bottom: 1px solid var(--border-soft);
 }
 
 .commit-item:last-child {
@@ -213,8 +259,8 @@ label input, label textarea {
 }
 
 .modal-card {
-  background: white;
-  border-radius: 8px;
+  background: var(--surface);
+  border-radius: var(--radius-lg);
   padding: 20px;
   width: 100%;
   max-width: 420px;

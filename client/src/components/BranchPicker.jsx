@@ -4,13 +4,16 @@ import { on, off } from '../events.js'
 
 export default function BranchPicker({ documentId, currentBranchId, onSelect }) {
   const [branches, setBranches] = useState([])
+  const [error, setError] = useState(null)
 
   async function load() {
     try {
       const rows = await listBranches(documentId)
       setBranches(rows)
-    } catch {
+      setError(null)
+    } catch (e) {
       setBranches([])
+      setError(e.message || 'Could not load branches')
     }
   }
 
@@ -27,8 +30,19 @@ export default function BranchPicker({ documentId, currentBranchId, onSelect }) 
     if (next) onSelect(next)
   }
 
+  if (error) {
+    return <span className="error">Branches: {error}</span>
+  }
+
+  const current = branches.find(b => b.id === currentBranchId)
+  const onMain = current?.is_main
+
   return (
-    <select className="branch-picker" value={currentBranchId} onChange={handleChange}>
+    <select
+      className={`branch-picker${onMain ? ' on-main' : ''}`}
+      value={currentBranchId}
+      onChange={handleChange}
+    >
       {branches.map(b => (
         <option key={b.id} value={b.id}>{b.name}</option>
       ))}

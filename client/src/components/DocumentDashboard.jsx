@@ -43,7 +43,12 @@ export default function DocumentDashboard() {
         <button onClick={() => navigate('/create-new-document')}>New Document</button>
       </div>
       {loading && <p className="muted">Loading...</p>}
-      {error && <p className="error">{error}</p>}
+      {error && (
+        <div className="error error-row">
+          <span>{error}</span>
+          <button onClick={load}>Retry</button>
+        </div>
+      )}
       {!loading && !error && docs.length === 0 && (
         <p className="muted">No documents yet. Create one to get started.</p>
       )}
