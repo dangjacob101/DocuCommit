@@ -17,7 +17,7 @@ class User(db.Model):
     hashed_password = db.Column(db.String(255), nullable=False)
     created_at = db.Column(db.DateTime, default=now_utc)
 
-    documents = db.relationship("Document", back_populates="owner")
+    documents = db.relationship("Document", back_populates="owner", cascade="all, delete-orphan")
 
 
 class Document(db.Model):
@@ -25,7 +25,7 @@ class Document(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(500), nullable=False)
-    owner_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
+    owner_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=True)
     created_at = db.Column(db.DateTime, default=now_utc)
 
     owner = db.relationship("User", back_populates="documents")
@@ -38,11 +38,11 @@ class Branch(db.Model):
     __tablename__ = "branches"
 
     id = db.Column(db.Integer, primary_key=True)
-    document_id = db.Column(db.Integer, db.ForeignKey("documents.id"), nullable=False)
+    document_id = db.Column(db.Integer, db.ForeignKey("documents.id", ondelete="CASCADE"), nullable=False)
     name = db.Column(db.String(255), nullable=False)
     is_main = db.Column(db.Boolean, default=False, nullable=False)
     branched_from_commit_id = db.Column(
-        db.Integer, db.ForeignKey("commits.id"), nullable=True
+        db.Integer, db.ForeignKey("commits.id", ondelete="SET NULL"), nullable=True
     )
     status = db.Column(db.String(20), default="active", nullable=False)
     created_at = db.Column(db.DateTime, default=now_utc)
@@ -56,6 +56,7 @@ class Branch(db.Model):
         back_populates="branch",
         foreign_keys="Commit.branch_id",
         order_by="Commit.id",
+        cascade="all, delete-orphan",
     )
 
     __table_args__ = (
@@ -69,7 +70,7 @@ class Commit(db.Model):
     __tablename__ = "commits"
 
     id = db.Column(db.Integer, primary_key=True)
-    branch_id = db.Column(db.Integer, db.ForeignKey("branches.id"), nullable=False)
+    branch_id = db.Column(db.Integer, db.ForeignKey("branches.id", ondelete="CASCADE"), nullable=False)
     message = db.Column(db.Text, nullable=False)
     diff_patch = db.Column(db.Text, nullable=False)
     created_at = db.Column(db.DateTime, default=now_utc)
