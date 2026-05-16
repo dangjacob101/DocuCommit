@@ -7,6 +7,7 @@ import BranchPicker from './BranchPicker.jsx'
 import CommitRevisionModal from './CommitRevisionModal.jsx'
 import NewBranchModal from './NewBranchModal.jsx'
 import CommitHistorySidebar from './CommitHistorySidebar.jsx'
+import Modal from './Modal.jsx'
 
 export default function Editor() {
   const { docId, branchName } = useParams()
@@ -20,8 +21,9 @@ export default function Editor() {
   const [error, setError] = useState(null)
   const [showCommit, setShowCommit] = useState(false)
   const [showNewBranch, setShowNewBranch] = useState(false)
+  const [pendingSwitch, setPendingSwitch] = useState(null)
 
-  useEffect(() => {
+  function load() {
     setLoading(true)
     setError(null)
     Promise.all([getDocument(parseInt(docId)), listBranches(parseInt(docId))])
@@ -35,19 +37,33 @@ export default function Editor() {
       })
       .catch(e => setError(e.message))
       .finally(() => setLoading(false))
-  }, [docId, branchName])
+  }
+
+  useEffect(() => { load() }, [docId, branchName])
 
   const dirty = content !== baseline
 
+  function goTo(next) {
+    navigate(`/${slugify(doc.title)}/${docId}/branches/${slugify(next.name)}`)
+  }
+
   function trySwitch(next) {
     if (slugify(next.name) === branchName) return
-    if (dirty && !window.confirm('You have uncommitted changes. Switch branches anyway?')) return
-    navigate(`/${slugify(doc.title)}/${docId}/branches/${slugify(next.name)}`)
+    if (dirty) {
+      setPendingSwitch(next)
+      return
+    }
+    goTo(next)
   }
 
   function handleCommitted() {
     setBaseline(content)
     setShowCommit(false)
+    if (pendingSwitch) {
+      const next = pendingSwitch
+      setPendingSwitch(null)
+      goTo(next)
+    }
   }
 
   function handleBranchCreated(newBranch) {
@@ -56,7 +72,15 @@ export default function Editor() {
   }
 
   if (loading) return <p className="muted">Loading...</p>
-  if (error) return <p className="error">{error}</p>
+  if (error) return (
+    <div className="error error-row">
+      <span>{error}</span>
+      <div className="left-group">
+        <button onClick={() => navigate('/')}>Back</button>
+        <button onClick={load}>Retry</button>
+      </div>
+    </div>
+  )
 
   return (
     <section>
@@ -84,7 +108,11 @@ export default function Editor() {
           </button>
         </div>
       </div>
-      <h2 className="doc-title">{doc.title}</h2>
+      <h2 className="doc-title">
+        {doc.title}
+        {dirty && <span className="dirty-dot" title="Uncommitted changes" />}
+        <span className="doc-title-branch">on {branch.name}</span>
+      </h2>
       <div className="editor-layout">
         <div className="editor-main">
           <textarea
@@ -108,10 +136,32 @@ export default function Editor() {
       {showNewBranch && (
         <NewBranchModal
           documentId={parseInt(docId)}
-          sourceBranchId={branch.id}
+          sourceBranch={branch}
           onClose={() => setShowNewBranch(false)}
           onCreated={handleBranchCreated}
         />
+      )}
+      {pendingSwitch && !showCommit && (
+        <Modal title="Uncommitted changes" onClose={() => setPendingSwitch(null)}>
+          <p>
+            You have uncommitted changes on <strong>{branch.name}</strong>.
+            Switching to <strong>{pendingSwitch.name}</strong> will discard them
+            unless you commit first.
+          </p>
+          <div className="row end">
+            <button onClick={() => setPendingSwitch(null)}>Cancel</button>
+            <button
+              onClick={() => {
+                const next = pendingSwitch
+                setPendingSwitch(null)
+                goTo(next)
+              }}
+            >
+              Discard and switch
+            </button>
+            <button onClick={() => setShowCommit(true)}>Commit first</button>
+          </div>
+        </Modal>
       )}
     </section>
   )

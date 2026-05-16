@@ -3,7 +3,7 @@ import Modal from './Modal.jsx'
 import { createBranch } from '../api.js'
 import { emit } from '../events.js'
 
-export default function NewBranchModal({ documentId, sourceBranchId, onClose, onCreated }) {
+export default function NewBranchModal({ documentId, sourceBranch, onClose, onCreated }) {
   const [name, setName] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
@@ -18,7 +18,7 @@ export default function NewBranchModal({ documentId, sourceBranchId, onClose, on
     setSaving(true)
     setError(null)
     try {
-      const branch = await createBranch(documentId, trimmed, sourceBranchId)
+      const branch = await createBranch(documentId, trimmed, sourceBranch.id)
       emit('branch-created', branch)
       onCreated(branch)
     } catch (err) {
@@ -31,6 +31,7 @@ export default function NewBranchModal({ documentId, sourceBranchId, onClose, on
   return (
     <Modal title="New Branch" onClose={onClose}>
       <form onSubmit={submit}>
+        <p className="muted">Branching from: <strong>{sourceBranch.name}</strong></p>
         <label>
           Name
           <input
