@@ -1,3 +1,5 @@
+import os
+
 from flask import Flask
 from flask_cors import CORS
 
@@ -31,4 +33,7 @@ app = create_app()
 
 
 if __name__ == "__main__":
-    app.run(debug=True, port=5000)
+    # Port is configurable so Mac users can dodge AirPlay Receiver on :5000.
+    # Set PORT in .env (e.g. PORT=5001) — see SETUP.md.
+    port = int(os.getenv("PORT", "5000"))
+    app.run(debug=True, port=port)
