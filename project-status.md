@@ -64,9 +64,7 @@ We likely satisfy the "three distinct features" requirement already. The goal is
 ### README File — 50 pts
 
 Currently covers project description, user stories, and milestones. Still missing:
-- Local setup instructions (`pip install`, `flask run`, `npm run dev`)
-- Environment variable documentation (`.env.example` exists in `Frank/` but is not referenced)
-- Architecture diagrams
+- Architecture diagrams (2 needed for most influential aspects of program)
 
 ---
 

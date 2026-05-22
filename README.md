@@ -14,14 +14,24 @@ To get the application running on your local machine, you'll need to boot up bot
 
 ### 1. Backend Setup
 
+The backend requires a `.env` file in the `Frank/` directory to manage its configuration. You can copy the provided `.env.example` file to get started:
+
 ```bash
 cd Frank
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
-cp .env.example .env  # Update values if needed
+cp .env.example .env
 flask run
 ```
+
+#### Environment Variables Reference
+
+When you copy `.env.example` to `.env`, you will see the following configuration keys (actual secret values are omitted here for security):
+
+- **`DATABASE_URL`**: The connection string for the database (defaults to a local SQLite file for development).
+- **`SECRET_KEY`**: Used by Flask for cryptographic operations and session security. In a development environment, any random string will work.
+- **`DEBUG`**: Set to `true` to enable Flask's debug mode and hot-reloading during development.
 
 ### 2. Frontend Setup
 
