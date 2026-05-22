@@ -1,5 +1,9 @@
 async function send(method, path, body) {
-  const opts = { method, headers: { 'Content-Type': 'application/json' } }
+  const opts = {
+    method,
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+  }
   if (body !== undefined) opts.body = JSON.stringify(body)
   const res = await fetch(path, opts)
   if (!res.ok) {
@@ -10,6 +14,26 @@ async function send(method, path, body) {
   if (res.status === 204) return null
   return res.json()
 }
+
+// ── Auth ──
+
+export function register(username, password) {
+  return send('POST', '/api/auth/register', { username, password })
+}
+
+export function login(username, password) {
+  return send('POST', '/api/auth/login', { username, password })
+}
+
+export function logout() {
+  return send('POST', '/api/auth/logout')
+}
+
+export function getMe() {
+  return send('GET', '/api/auth/me')
+}
+
+// ── Documents ──
 
 export function listDocuments() {
   return send('GET', '/api/documents')
