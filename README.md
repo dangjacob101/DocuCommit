@@ -8,8 +8,34 @@ DocuCommit is a web-based platform that brings the power of Git-style version co
 
 Launching software in this space would be interesting since it shifts the paradigm away from sending emails with chaotic "Contract_LawyerOne_Final_Edit_v10.docx" to a more structured DAG of the document history. Moreover, it would allow for easier review of changes to the document, specifically reducing the time that more senior members of the team review the changes made by interns or junior-level coworkers. From a technical perspective, it presents a fantastic software engineering challenge: building a robust Python backend to calculate text diffs, manage parallel document states, and resolve merge conflicts, paired with a dynamic React frontend to visualize the document tree.
 
-## User Stories
+## Local Setup Instructions
 
+To get the application running on your local machine, you'll need to boot up both the backend (Flask) and frontend (React/Vite).
+
+### 1. Backend Setup
+
+```bash
+cd Frank
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env  # Update values if needed
+flask run
+```
+
+### 2. Frontend Setup
+
+Open a new terminal window:
+
+```bash
+cd client
+npm install
+npm run dev
+```
+
+Both services will start, and the frontend terminal will provide a `localhost` URL to access DocuCommit in your browser.
+
+## User Stories
 ### Must Have (Basically all the core version control logic)
 
 **Document Initialization**
