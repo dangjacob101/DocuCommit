@@ -165,6 +165,28 @@ label textarea {
   border-bottom: none;
 }
 
+.doc-list-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.dashboard-edit {
+  margin: 0;
+  width: 100%;
+}
+
+.editable-title {
+  cursor: pointer;
+  border-bottom: 2px dashed transparent;
+  transition: border-color 0.15s, opacity 0.15s;
+}
+
+.editable-title:hover {
+  border-color: var(--text-muted);
+  opacity: 0.8;
+}
+
 .muted {
   color: var(--text-muted);
   font-size: 12px;
@@ -213,6 +235,42 @@ label textarea {
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+.title-edit-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 8px 0 12px 0;
+}
+
+.title-edit-input {
+  font-size: 20px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border: 1px solid var(--input-border);
+  border-radius: var(--radius);
+  flex: 1;
+  max-width: 400px;
+}
+
+.pencil-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 16px;
+  padding: 4px;
+  cursor: pointer;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s, background 0.15s;
+}
+
+.pencil-btn:hover {
+  color: var(--text);
+  background: var(--border-soft);
 }
 
 .doc-title-branch {

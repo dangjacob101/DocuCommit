@@ -43,6 +43,10 @@ export function getDocument(id) {
   return send('GET', `/api/documents/${id}`)
 }
 
+export function updateDocument(id, title) {
+  return send('PUT', `/api/documents/${id}`, { title })
+}
+
 export function listDocumentCommits(documentId) {
   return send('GET', `/api/documents/${documentId}/commits`)
 }
