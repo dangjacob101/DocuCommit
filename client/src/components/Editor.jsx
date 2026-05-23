@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { getDocument, listBranches } from '../api.js'
+import { getDocument, listBranches, mergeBranch } from '../api.js'
 import { slugify } from '../utils.js'
 import RichEditor from './RichEditor.jsx'
 import BranchPicker from './BranchPicker.jsx'
@@ -22,6 +22,7 @@ export default function Editor() {
   const [showCommit, setShowCommit] = useState(false)
   const [showNewBranch, setShowNewBranch] = useState(false)
   const [pendingSwitch, setPendingSwitch] = useState(null)
+  const [mergeError, setMergeError] = useState(null)
 
   function load() {
     setLoading(true)
@@ -105,7 +106,17 @@ export default function Editor() {
           )}
           {!branch.is_main && (
             <button
-              onClick={() => navigate(`/${slugify(doc.title)}/${docId}/branches/${branchName}/merge`)}
+              onClick={async () => {
+                setMergeError(null)
+                try {
+                  await mergeBranch(branch.id)
+                  // Clean merge succeeded — navigate to Main
+                  navigate(`/${slugify(doc.title)}/${docId}/branches/main`)
+                } catch (e) {
+                  // Conflict — redirect to the conflict resolver
+                  navigate(`/${slugify(doc.title)}/${docId}/branches/${branchName}/merge`)
+                }
+              }}
             >
               Merge to Main
             </button>
