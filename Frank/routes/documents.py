@@ -1,6 +1,7 @@
 from flask import Blueprint, jsonify, request
 
 from models import db, Document, Branch, Commit
+from routes.auth import get_current_user
 from utils import compute_visual_diff, make_diff, reconstruct_branch_content
 
 documents_bp = Blueprint("documents", __name__)
@@ -86,6 +87,10 @@ def make_document_diff_payload(source_doc, target_doc):
 
 @documents_bp.route("/documents", methods=["POST"])
 def create_document():
+    user = get_current_user()
+    if user is None:
+        return jsonify({"error": "authentication required"}), 401
+
     data = request.get_json(silent=True) or {}
     title = data.get("title")
     content = data.get("content", "")
@@ -95,7 +100,7 @@ def create_document():
     if not isinstance(content, str):
         return jsonify({"error": "content must be a string"}), 400
 
-    doc = Document(title=title.strip(), owner_id=data.get("owner_id"))
+    doc = Document(title=title.strip(), owner_id=user.id)
     db.session.add(doc)
     db.session.flush()
 
@@ -123,7 +128,11 @@ def create_document():
 
 @documents_bp.route("/documents", methods=["GET"])
 def list_documents():
-    docs = Document.query.order_by(Document.id).all()
+    user = get_current_user()
+    if user is None:
+        return jsonify({"error": "authentication required"}), 401
+
+    docs = Document.query.filter_by(owner_id=user.id).order_by(Document.id).all()
     return jsonify([document_to_dict(d) for d in docs])
 
 
@@ -171,9 +180,15 @@ def diff_documents():
 
 @documents_bp.route("/documents/<int:doc_id>", methods=["GET"])
 def get_document(doc_id):
+    user = get_current_user()
+    if user is None:
+        return jsonify({"error": "authentication required"}), 401
+
     doc = Document.query.get(doc_id)
     if doc is None:
         return jsonify({"error": "document not found"}), 404
+    if doc.owner_id != user.id:
+        return jsonify({"error": "access denied"}), 403
     return jsonify(document_to_dict(doc))
 
 
@@ -208,9 +223,15 @@ def list_document_commits(doc_id):
 
 @documents_bp.route("/documents/<int:doc_id>", methods=["PUT"])
 def update_document(doc_id):
+    user = get_current_user()
+    if user is None:
+        return jsonify({"error": "authentication required"}), 401
+
     doc = Document.query.get(doc_id)
     if doc is None:
         return jsonify({"error": "document not found"}), 404
+    if doc.owner_id != user.id:
+        return jsonify({"error": "access denied"}), 403
 
     data = request.get_json(silent=True) or {}
     title = data.get("title", doc.title)
@@ -243,9 +264,15 @@ def update_document(doc_id):
 
 @documents_bp.route("/documents/<int:doc_id>", methods=["DELETE"])
 def delete_document(doc_id):
+    user = get_current_user()
+    if user is None:
+        return jsonify({"error": "authentication required"}), 401
+
     doc = Document.query.get(doc_id)
     if doc is None:
         return jsonify({"error": "document not found"}), 404
+    if doc.owner_id != user.id:
+        return jsonify({"error": "access denied"}), 403
     db.session.delete(doc)
     db.session.commit()
     return "", 204

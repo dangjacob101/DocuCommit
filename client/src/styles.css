@@ -26,10 +26,36 @@ body {
   padding: 24px;
 }
 
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
 header h1 {
-  margin: 0 0 24px 0;
+  margin: 0;
   font-size: 24px;
   letter-spacing: -0.5px;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.header-user {
+  font-size: 14px;
+  color: var(--text-soft);
+}
+
+.logout-btn {
+  background: none;
+  color: var(--text-soft);
+  border: 1px solid var(--border);
+  padding: 6px 12px;
+  font-size: 13px;
 }
 
 main section {
@@ -738,4 +764,102 @@ button.pill:hover {
   font-family: 'Georgia', 'Times New Roman', serif;
   font-size: 14px;
   line-height: 1.6;
+/* ─── Login Page ─────────────────────────────────────────────────────────── */
+
+.login-section {
+  display: flex;
+  justify-content: center;
+  padding: 40px 0;
 }
+
+.login-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 32px;
+  width: 100%;
+  max-width: 380px;
+}
+
+.login-card h2 {
+  margin: 0 0 4px 0;
+  font-size: 20px;
+}
+
+.login-subtitle {
+  color: var(--text-muted);
+  font-size: 14px;
+  margin: 0 0 20px 0;
+}
+
+.login-card form label {
+  display: block;
+  margin-bottom: 14px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-soft);
+}
+
+.login-card form input {
+  margin-top: 4px;
+}
+
+.login-card form button[type="submit"] {
+  width: 100%;
+  margin-top: 8px;
+  padding: 10px;
+  font-size: 15px;
+}
+
+.login-toggle {
+  text-align: center;
+  margin-top: 16px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+/* ─── Password Rules Checklist ───────────────────────────────────────────── */
+
+.pw-rules {
+  list-style: none;
+  margin: 0 0 12px 0;
+  padding: 10px 14px;
+  background: #fafaf8;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.pw-rule {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  font-size: 13px;
+  color: #9a3a3a;
+  transition: color 0.25s ease;
+}
+
+.pw-rule.passed {
+  color: #1a7a34;
+}
+
+.pw-rule-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 700;
+  flex-shrink: 0;
+  transition: background 0.25s ease, color 0.25s ease;
+  background: #fce4e4;
+  color: #b33;
+}
+
+.pw-rule.passed .pw-rule-icon {
+  background: #d4edda;
+  color: #155724;
+}
+
