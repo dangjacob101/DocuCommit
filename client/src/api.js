@@ -59,3 +59,19 @@ export function diffBranch(branchId, ignoreWhitespace = false) {
 export function mergeBranch(branchId) {
   return send('POST', `/api/branches/${branchId}/merge`)
 }
+
+// Mock for now this needs to be changed later when we get real stuff going
+export function getMergePreview(documentId, branchName) {
+  return Promise.resolve({
+    branchName,
+    mainName: 'Main',
+    hunks: [
+      { id: 'h1', kind: 'equal', text: 'Hello world.' },
+      { id: 'h2', kind: 'auto-branch', branch: 'Adding a new line on the branch.' },
+      { id: 'h3', kind: 'conflict', main: 'The cat is black.', branch: 'The cat is orange.' },
+      { id: 'h4', kind: 'equal', text: 'Some unchanged middle paragraph.' },
+      { id: 'h5', kind: 'auto-main', main: 'A line only Main has.' },
+      { id: 'h6', kind: 'conflict', main: 'We meet on Tuesday.', branch: 'We meet on Friday.' }
+    ]
+  })
+}

@@ -103,6 +103,13 @@ export default function Editor() {
               Compare to Main
             </button>
           )}
+          {!branch.is_main && (
+            <button
+              onClick={() => navigate(`/${slugify(doc.title)}/${docId}/branches/${branchName}/merge`)}
+            >
+              Merge to Main
+            </button>
+          )}
           <button onClick={() => setShowCommit(true)} disabled={!dirty}>
             Commit Revision
           </button>
