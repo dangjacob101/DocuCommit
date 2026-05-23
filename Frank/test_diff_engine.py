@@ -113,6 +113,47 @@ def test_large_file():
     assert result == new, "Large file diff roundtrip failed"
     print("PASS: large file (500 lines, 4 changes)")
 
+def test_3way_merge_conflict():
+    from diff_engine import compute_3way_merge
+    base = "A\nB\nC\nD\n"
+    main = "A\nX\nC\nD\n"
+    branch = "A\nY\nC\nD\n"
+    hunks = compute_3way_merge(base, main, branch)
+    assert len(hunks) == 4
+    assert hunks[0]["kind"] == "equal" and hunks[0]["text"] == "A\n"
+    assert hunks[1]["kind"] == "conflict" and hunks[1]["main"] == "X\n" and hunks[1]["branch"] == "Y\n"
+    print("PASS: 3-way merge conflict")
+
+def test_3way_merge_auto_main():
+    from diff_engine import compute_3way_merge
+    base = "A\nB\nC\n"
+    main = "A\nB_main\nC\n"
+    branch = "A\nB\nC\n"
+    hunks = compute_3way_merge(base, main, branch)
+    assert len(hunks) == 3
+    assert hunks[1]["kind"] == "auto-main" and hunks[1]["text"] == "B_main\n"
+    print("PASS: 3-way merge auto-main")
+
+def test_3way_merge_auto_branch():
+    from diff_engine import compute_3way_merge
+    base = "A\nB\nC\n"
+    main = "A\nB\nC\n"
+    branch = "A\nB_branch\nC\n"
+    hunks = compute_3way_merge(base, main, branch)
+    assert len(hunks) == 3
+    assert hunks[1]["kind"] == "auto-branch" and hunks[1]["text"] == "B_branch\n"
+    print("PASS: 3-way merge auto-branch")
+
+def test_3way_merge_insert_conflict():
+    from diff_engine import compute_3way_merge
+    base = "A\n"
+    main = "A\nB\n"
+    branch = "A\nC\n"
+    hunks = compute_3way_merge(base, main, branch)
+    assert len(hunks) == 2
+    assert hunks[1]["kind"] == "conflict" and hunks[1]["main"] == "B\n" and hunks[1]["branch"] == "C\n"
+    print("PASS: 3-way merge insert conflict")
+
 if __name__ == "__main__":
     test_identical()
     test_simple_addition()
@@ -125,4 +166,8 @@ if __name__ == "__main__":
     test_visual_diff()
     test_no_trailing_newline()
     test_large_file()
+    test_3way_merge_conflict()
+    test_3way_merge_auto_main()
+    test_3way_merge_auto_branch()
+    test_3way_merge_insert_conflict()
     print("\nAll tests passed!")

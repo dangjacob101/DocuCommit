@@ -1,3 +1,4 @@
+import difflib
 from typing import List, Tuple
 
 
@@ -321,3 +322,110 @@ def compute_visual_diff(old_text: str, new_text: str):
             i += 1
 
     return result
+
+
+def _map_edits(base: List[str], target: List[str]):
+    ops = difflib.SequenceMatcher(None, base, target).get_opcodes()
+    inserts = {i: [] for i in range(len(base) + 1)}
+    deletes = set()
+    
+    for tag, i1, i2, j1, j2 in ops:
+        if tag == 'insert':
+            inserts[i1].extend(target[j1:j2])
+        elif tag == 'delete':
+            for i in range(i1, i2):
+                deletes.add(i)
+        elif tag == 'replace':
+            for i in range(i1, i2):
+                deletes.add(i)
+            inserts[i1].extend(target[j1:j2])
+            
+    return inserts, deletes
+
+
+def compute_3way_merge(base_text: str, main_text: str, branch_text: str) -> List[dict]:
+    """Computes a 3-way merge between a base version and two diverged versions.
+    
+    Returns a list of hunks representing the merged document, with conflicts 
+    highlighted where both main and branch modified the same region differently.
+    """
+    def ensure_newline(t):
+        return t + "\n" if t and not t.endswith("\n") else t
+
+    base_lines = ensure_newline(base_text).splitlines(keepends=True) if base_text else []
+    main_lines = ensure_newline(main_text).splitlines(keepends=True) if main_text else []
+    branch_lines = ensure_newline(branch_text).splitlines(keepends=True) if branch_text else []
+
+    inserts_m, deletes_m = _map_edits(base_lines, main_lines)
+    inserts_b, deletes_b = _map_edits(base_lines, branch_lines)
+    
+    hunks = []
+    i = 0
+    n = len(base_lines)
+    hunk_id_counter = 1
+    
+    while i <= n:
+        ins_m = inserts_m.get(i, [])
+        ins_b = inserts_b.get(i, [])
+        del_m = i in deletes_m
+        del_b = i in deletes_b
+        
+        if not ins_m and not ins_b and not del_m and not del_b:
+            if i < n:
+                hunks.append({"id": f"h{hunk_id_counter}", "kind": "equal", "text": base_lines[i]})
+                hunk_id_counter += 1
+            i += 1
+            continue
+            
+        main_chunk = []
+        branch_chunk = []
+        base_chunk = []
+        
+        while i <= n:
+            ins_m = inserts_m.get(i, [])
+            ins_b = inserts_b.get(i, [])
+            
+            main_chunk.extend(ins_m)
+            branch_chunk.extend(ins_b)
+            
+            inserts_m[i] = []
+            inserts_b[i] = []
+            
+            if i == n:
+                i += 1
+                break
+                
+            del_m = i in deletes_m
+            del_b = i in deletes_b
+            
+            if not del_m and not del_b:
+                break
+                
+            base_chunk.append(base_lines[i])
+            if not del_m: main_chunk.append(base_lines[i])
+            if not del_b: branch_chunk.append(base_lines[i])
+            
+            i += 1
+            
+        if main_chunk == branch_chunk:
+            for line in main_chunk:
+                hunks.append({"id": f"h{hunk_id_counter}", "kind": "auto-main", "text": line})
+                hunk_id_counter += 1
+        elif main_chunk == base_chunk:
+            for line in branch_chunk:
+                hunks.append({"id": f"h{hunk_id_counter}", "kind": "auto-branch", "text": line})
+                hunk_id_counter += 1
+        elif branch_chunk == base_chunk:
+            for line in main_chunk:
+                hunks.append({"id": f"h{hunk_id_counter}", "kind": "auto-main", "text": line})
+                hunk_id_counter += 1
+        else:
+            hunks.append({
+                "id": f"h{hunk_id_counter}",
+                "kind": "conflict",
+                "main": "".join(main_chunk),
+                "branch": "".join(branch_chunk)
+            })
+            hunk_id_counter += 1
+            
+    return hunks
