@@ -18,6 +18,10 @@ class MergeRouteTest(unittest.TestCase):
         with self.app.app_context():
             db.drop_all()
             db.create_all()
+        self.client.post(
+            "/api/auth/register",
+            json={"username": "merge_test", "password": "MergeTest1!"},
+        )
 
     def tearDown(self):
         with self.app.app_context():

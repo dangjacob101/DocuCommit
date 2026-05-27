@@ -141,7 +141,7 @@ def list_commits(branch_id):
 def diff_branch_vs_main(branch_id):
     """Compare a branch against its document's Main branch.
 
-    Returns the same visual_diff payload shape as POST /documents/diff so the
+    Returns the visual_diff payload used by the frontend diff viewer so the
     frontend can use a single DiffViewer component for both surfaces.
 
     Query params:
