@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { listDocuments, listBranches } from '../api.js'
+import { listDocuments, listBranches, updateDocument } from '../api.js'
 import { slugify } from '../utils.js'
 
 export default function DocumentDashboard() {
@@ -8,6 +8,10 @@ export default function DocumentDashboard() {
   const [docs, setDocs] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+
+  const [editingDocId, setEditingDocId] = useState(null)
+  const [editTitleVal, setEditTitleVal] = useState('')
+  const [savingTitle, setSavingTitle] = useState(false)
 
   async function load() {
     try {
@@ -36,6 +40,23 @@ export default function DocumentDashboard() {
     }
   }
 
+  async function handleSaveTitle(id, originalTitle) {
+    if (!editTitleVal.trim() || editTitleVal === originalTitle) {
+      setEditingDocId(null)
+      return
+    }
+    setSavingTitle(true)
+    try {
+      await updateDocument(id, editTitleVal)
+      setDocs(docs.map(d => d.id === id ? { ...d, title: editTitleVal } : d))
+      setEditingDocId(null)
+    } catch (e) {
+      alert(`Failed to update title: ${e.message}`)
+    } finally {
+      setSavingTitle(false)
+    }
+  }
+
   return (
     <section>
       <div className="row">
@@ -55,13 +76,41 @@ export default function DocumentDashboard() {
       <ul className="doc-list">
         {docs.map((d) => (
           <li key={d.id}>
-            <button
-              className="link"
-              onClick={() => openDocument(d)}
-            >
-              {d.title}
-            </button>
-            <span className="muted">{formatDate(d.updated_at)}</span>
+            {editingDocId === d.id ? (
+              <div className="title-edit-group dashboard-edit">
+                <input 
+                  className="title-edit-input" 
+                  value={editTitleVal} 
+                  onChange={e => setEditTitleVal(e.target.value)} 
+                  disabled={savingTitle}
+                  autoFocus 
+                />
+                <button onClick={() => handleSaveTitle(d.id, d.title)} disabled={savingTitle}>Save</button>
+                <button onClick={() => setEditingDocId(null)} disabled={savingTitle}>Cancel</button>
+              </div>
+            ) : (
+              <>
+                <button
+                  className="link"
+                  onClick={() => openDocument(d)}
+                >
+                  {d.title}
+                </button>
+                <div className="doc-list-right">
+                  <span className="muted">{formatDate(d.updated_at)}</span>
+                  <button 
+                    className="pencil-btn" 
+                    onClick={() => {
+                      setEditTitleVal(d.title)
+                      setEditingDocId(d.id)
+                    }}
+                    title="Rename document"
+                  >
+                    ✎
+                  </button>
+                </div>
+              </>
+            )}
           </li>
         ))}
       </ul>

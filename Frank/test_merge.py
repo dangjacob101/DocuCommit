@@ -30,6 +30,10 @@ class MergeRouteTest(unittest.TestCase):
             json={"username": "frank", "password": "CS35LTeamprofile!"},
         )
         self.assertEqual(response.status_code, 200)
+        self.client.post(
+            "/api/auth/register",
+            json={"username": "merge_test", "password": "MergeTest1!"},
+        )
 
     def tearDown(self):
         with self.app.app_context():
