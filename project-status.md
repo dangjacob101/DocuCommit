@@ -6,6 +6,14 @@ Last updated: 2026-05-22
 
 ## Completed
 
+### Authentication — 50 pts
+
+The `User` model exists in `models.py` with `email` and `hashed_password` columns, but nothing is wired up. Still needed:
+- Login and register routes
+- JWT or session-based token handling
+- Route protection on the backend
+- Auth UI on the frontend
+
 ### Dynamic Data Display — 50 pts
 
 The frontend fetches and renders live data from the backend on every page. `DocumentDashboard` lists documents, `Editor` loads branch content, `CommitHistorySidebar` shows commit history, `BranchPicker` populates from the API, and `DiffViewer` renders a visual line-by-line comparison.
@@ -85,14 +93,6 @@ Reference: https://tobiasduerschmid.github.io/SEBook/tools/playwright-tutorial
 ---
 
 ## Not Started
-
-### Authentication — 50 pts
-
-The `User` model exists in `models.py` with `email` and `hashed_password` columns, but nothing is wired up. Still needed:
-- Login and register routes
-- JWT or session-based token handling
-- Route protection on the backend
-- Auth UI on the frontend
 
 ---
 

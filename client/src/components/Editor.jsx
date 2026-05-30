@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { getDocument, listBranches, exportDocument } from '../api.js'
-import { slugify, escapeHtml } from '../utils.js'
+import { getDocument, listBranches, mergeBranch } from '../api.js'
+import { getDocument, listBranches, updateDocument } from '../api.js'
+import { slugify } from '../utils.js'
 import RichEditor from './RichEditor.jsx'
 import BranchPicker from './BranchPicker.jsx'
 import CommitRevisionModal from './CommitRevisionModal.jsx'
@@ -22,6 +23,11 @@ export default function Editor() {
   const [showCommit, setShowCommit] = useState(false)
   const [showNewBranch, setShowNewBranch] = useState(false)
   const [pendingSwitch, setPendingSwitch] = useState(null)
+  const [mergeError, setMergeError] = useState(null)
+  
+  const [isEditingTitle, setIsEditingTitle] = useState(false)
+  const [editTitleVal, setEditTitleVal] = useState('')
+  const [savingTitle, setSavingTitle] = useState(false)
 
   function load() {
     setLoading(true)
@@ -102,6 +108,21 @@ export default function Editor() {
       win.document.close()
     } catch (e) {
       setError(e.message)
+  async function handleSaveTitle() {
+    if (!editTitleVal.trim() || editTitleVal === doc.title) {
+      setIsEditingTitle(false)
+      return
+    }
+    setSavingTitle(true)
+    try {
+      const updated = await updateDocument(docId, editTitleVal)
+      setDoc(updated)
+      setIsEditingTitle(false)
+      navigate(`/${slugify(updated.title)}/${docId}/branches/${branchName}`, { replace: true })
+    } catch (e) {
+      alert(`Failed to update title: ${e.message}`)
+    } finally {
+      setSavingTitle(false)
     }
   }
 
@@ -139,7 +160,17 @@ export default function Editor() {
           )}
           {!branch.is_main && (
             <button
-              onClick={() => navigate(`/${slugify(doc.title)}/${docId}/branches/${branchName}/merge`)}
+              onClick={async () => {
+                setMergeError(null)
+                try {
+                  await mergeBranch(branch.id)
+                  // Clean merge succeeded — navigate to Main
+                  navigate(`/${slugify(doc.title)}/${docId}/branches/main`)
+                } catch (e) {
+                  // Conflict — redirect to the conflict resolver
+                  navigate(`/${slugify(doc.title)}/${docId}/branches/${branchName}/merge`)
+                }
+              }}
             >
               Merge to Main
             </button>
@@ -154,11 +185,36 @@ export default function Editor() {
           </button>
         </div>
       </div>
-      <h2 className="doc-title">
-        {doc.title}
-        {dirty && <span className="dirty-dot" title="Uncommitted changes" />}
-        <span className="doc-title-branch">on {branch.name}</span>
-      </h2>
+      
+      {isEditingTitle ? (
+        <div className="title-edit-group">
+          <input 
+            className="title-edit-input" 
+            value={editTitleVal} 
+            onChange={e => setEditTitleVal(e.target.value)} 
+            disabled={savingTitle}
+            autoFocus 
+          />
+          <button onClick={handleSaveTitle} disabled={savingTitle}>Save</button>
+          <button onClick={() => setIsEditingTitle(false)} disabled={savingTitle}>Cancel</button>
+        </div>
+      ) : (
+        <h2 className="doc-title">
+          <span 
+            className="editable-title" 
+            onClick={() => {
+              setEditTitleVal(doc.title)
+              setIsEditingTitle(true)
+            }}
+            title="Click to rename document"
+          >
+            {doc.title}
+          </span>
+          {dirty && <span className="dirty-dot" title="Uncommitted changes" />}
+          <span className="doc-title-branch">on {branch.name}</span>
+        </h2>
+      )}
+
       <div className="editor-layout">
         <div className="editor-main">
           <textarea

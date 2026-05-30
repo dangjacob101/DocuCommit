@@ -1,5 +1,9 @@
 async function send(method, path, body) {
-  const opts = { method, headers: { 'Content-Type': 'application/json' } }
+  const opts = {
+    method,
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+  }
   if (body !== undefined) opts.body = JSON.stringify(body)
   const res = await fetch(path, opts)
   if (!res.ok) {
@@ -11,12 +15,36 @@ async function send(method, path, body) {
   return res.json()
 }
 
+// ── Auth ──
+
+export function register(username, password) {
+  return send('POST', '/api/auth/register', { username, password })
+}
+
+export function login(username, password) {
+  return send('POST', '/api/auth/login', { username, password })
+}
+
+export function logout() {
+  return send('POST', '/api/auth/logout')
+}
+
+export function getMe() {
+  return send('GET', '/api/auth/me')
+}
+
+// ── Documents ──
+
 export function listDocuments() {
   return send('GET', '/api/documents')
 }
 
 export function getDocument(id) {
   return send('GET', `/api/documents/${id}`)
+}
+
+export function updateDocument(id, title) {
+  return send('PUT', `/api/documents/${id}`, { title })
 }
 
 export function listDocumentCommits(documentId) {
@@ -56,26 +84,12 @@ export function diffBranch(branchId, ignoreWhitespace = false) {
   return send('GET', `/api/branches/${branchId}/diff${qs}`)
 }
 
-export function mergeBranch(branchId) {
-  return send('POST', `/api/branches/${branchId}/merge`)
+export function mergeBranch(branchId, resolutions) {
+  const body = resolutions ? { resolutions } : undefined
+  return send('POST', `/api/branches/${branchId}/merge`, body)
 }
 
-export function exportDocument(documentId) {
-  return send('GET', `/api/documents/${documentId}/export`)
+export function getMergePreview(branchId) {
+  return send('GET', `/api/branches/${branchId}/merge/preview`)
 }
 
-// Mock for now this needs to be changed later when we get real stuff going
-export function getMergePreview(documentId, branchName) {
-  return Promise.resolve({
-    branchName,
-    mainName: 'Main',
-    hunks: [
-      { id: 'h1', kind: 'equal', text: 'Hello world.' },
-      { id: 'h2', kind: 'auto-branch', branch: 'Adding a new line on the branch.' },
-      { id: 'h3', kind: 'conflict', main: 'The cat is black.', branch: 'The cat is orange.' },
-      { id: 'h4', kind: 'equal', text: 'Some unchanged middle paragraph.' },
-      { id: 'h5', kind: 'auto-main', main: 'A line only Main has.' },
-      { id: 'h6', kind: 'conflict', main: 'We meet on Tuesday.', branch: 'We meet on Friday.' }
-    ]
-  })
-}

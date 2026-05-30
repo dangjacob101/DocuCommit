@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { getMergePreview } from '../api.js'
+import { getMergePreview, mergeBranch, listBranches } from '../api.js'
+import { slugify } from '../utils.js'
 
 function HunkEqual({ text }) {
   return (
@@ -82,12 +83,21 @@ export default function ConflictResolver() {
   const navigate = useNavigate()
 
   const [preview, setPreview] = useState(null)
+  const [branchId, setBranchId] = useState(null)
   const [resolutions, setResolutions] = useState({})
   const [editingId, setEditingId] = useState(null)
   const [error, setError] = useState(null)
+  const [merging, setMerging] = useState(false)
 
   useEffect(() => {
-    getMergePreview(parseInt(docId), branchName)
+    // Look up the branch ID from the branch name, then fetch the merge preview
+    listBranches(parseInt(docId))
+      .then((branches) => {
+        const branch = branches.find(b => slugify(b.name) === branchName)
+        if (!branch) throw new Error(`Branch "${branchName}" not found`)
+        setBranchId(branch.id)
+        return getMergePreview(branch.id)
+      })
       .then((p) => {
         setPreview(p)
         const initial = {}
@@ -100,7 +110,7 @@ export default function ConflictResolver() {
       .catch((e) => setError(e.message))
   }, [docId, branchName])
 
-  if (error) return <p className="error">{error}</p>
+  if (error && !preview) return <p className="error">{error}</p>
   if (!preview) return <p className="muted">Loading merge preview...</p>
 
   const conflicts = preview.hunks.filter(h => h.kind === 'conflict')
@@ -108,7 +118,7 @@ export default function ConflictResolver() {
     const r = resolutions[h.id]
     return r != null && editingId !== h.id
   }).length
-  const allResolved = conflicts.length > 0 && resolvedCount === conflicts.length
+  const allResolved = conflicts.length === 0 || resolvedCount === conflicts.length
 
   function setRes(id, value) {
     setResolutions(prev => {
@@ -139,9 +149,25 @@ export default function ConflictResolver() {
 
   const backPath = `/${docSlug}/${docId}/branches/${branchName}`
 
-  function onFinish() {
-    // still need real merge endpoints will add ltr
-    alert(`Would submit ${conflicts.length} resolutions. (not implemented yet)`)
+  async function onFinish() {
+    if (!branchId) return
+    setMerging(true)
+    setError(null)
+
+    try {
+      // Build resolutions for conflict hunks only
+      const conflictResolutions = {}
+      for (const h of conflicts) {
+        conflictResolutions[h.id] = resolutions[h.id]
+      }
+      await mergeBranch(branchId, conflictResolutions)
+      // Navigate to Main branch on success
+      navigate(`/${docSlug}/${docId}/branches/main`)
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setMerging(false)
+    }
   }
 
   return (
@@ -149,9 +175,9 @@ export default function ConflictResolver() {
       <div className="row">
         <button onClick={() => navigate(backPath)}>← Back to Editor</button>
         <h2 className="diff-heading">
-          Merge: <span className="diff-branch-name">{branchName}</span>
+          Merge: <span className="diff-branch-name">{preview.branch_name}</span>
           <span className="diff-heading-sep"> into </span>
-          <span className="diff-branch-name diff-branch-main">Main</span>
+          <span className="diff-branch-name diff-branch-main">{preview.main_name}</span>
         </h2>
       </div>
 
@@ -161,10 +187,12 @@ export default function ConflictResolver() {
             ? 'No conflicts. Ready to merge.'
             : `${resolvedCount} of ${conflicts.length} conflicts resolved`}
         </span>
-        <button onClick={onFinish} disabled={conflicts.length > 0 && !allResolved}>
-          Finish merge
+        <button onClick={onFinish} disabled={!allResolved || merging}>
+          {merging ? 'Merging...' : 'Finish merge'}
         </button>
       </div>
+
+      {error && <p className="error">{error}</p>}
 
       <div className="merge-hunks">
         {preview.hunks.map(h => {
