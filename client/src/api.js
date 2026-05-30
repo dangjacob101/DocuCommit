@@ -60,6 +60,10 @@ export function mergeBranch(branchId) {
   return send('POST', `/api/branches/${branchId}/merge`)
 }
 
+export function exportDocument(documentId) {
+  return send('GET', `/api/documents/${documentId}/export`)
+}
+
 // Mock for now this needs to be changed later when we get real stuff going
 export function getMergePreview(documentId, branchName) {
   return Promise.resolve({
