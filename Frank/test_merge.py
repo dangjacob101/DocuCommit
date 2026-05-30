@@ -18,6 +18,18 @@ class MergeRouteTest(unittest.TestCase):
         with self.app.app_context():
             db.drop_all()
             db.create_all()
+            # Re-seed the default user after wiping tables
+            from app import _seed_default_user
+            _seed_default_user()
+        # Log in so document routes pass auth
+        self._login()
+
+    def _login(self):
+        response = self.client.post(
+            "/api/auth/login",
+            json={"username": "frank", "password": "CS35LTeamprofile!"},
+        )
+        self.assertEqual(response.status_code, 200)
         self.client.post(
             "/api/auth/register",
             json={"username": "merge_test", "password": "MergeTest1!"},
@@ -52,6 +64,8 @@ class MergeRouteTest(unittest.TestCase):
         self.assertEqual(response.status_code, 201)
         return response.get_json()
 
+    # ── Clean merge (unchanged from before) ────────────────────────
+
     def test_clean_merge_overwrites_main_and_archives_branch(self):
         document = self._create_document("Base terms")
         branch = self._create_branch(document["id"])
@@ -83,6 +97,8 @@ class MergeRouteTest(unittest.TestCase):
         )
         self.assertEqual(rejected.status_code, 409)
 
+    # ── Diverged: merge without resolutions → 409 with conflict flag ──
+
     def test_merge_rejects_when_main_has_new_commits(self):
         document = self._create_document("Base terms")
         branch = self._create_branch(document["id"])
@@ -97,7 +113,8 @@ class MergeRouteTest(unittest.TestCase):
         response = self.client.post(f"/api/branches/{branch['id']}/merge")
 
         self.assertEqual(response.status_code, 409)
-        self.assertIn("Main has diverged", response.get_json()["error"])
+        payload = response.get_json()
+        self.assertTrue(payload.get("conflict"))
 
         with self.app.app_context():
             merged_branch = db.session.get(Branch, branch["id"])
@@ -105,6 +122,172 @@ class MergeRouteTest(unittest.TestCase):
 
             self.assertEqual(merged_branch.status, "active")
             self.assertEqual(reconstruct_branch_content(main_branch), "Main changed")
+
+    # ── Merge preview ──────────────────────────────────────────────
+
+    def test_merge_preview_no_divergence(self):
+        """Preview when Main hasn't diverged — all auto-branch or equal."""
+        document = self._create_document("Base terms")
+        branch = self._create_branch(document["id"])
+        self._commit(branch["id"], "Base terms\nNew clause")
+
+        response = self.client.get(f"/api/branches/{branch['id']}/merge/preview")
+        self.assertEqual(response.status_code, 200)
+        payload = response.get_json()
+
+        self.assertFalse(payload["has_conflicts"])
+        self.assertIsInstance(payload["hunks"], list)
+        self.assertTrue(len(payload["hunks"]) > 0)
+
+    def test_merge_preview_with_conflicts(self):
+        """Preview when both sides changed the same line → conflict."""
+        document = self._create_document("line one\nline two\nline three")
+        branch = self._create_branch(document["id"])
+
+        with self.app.app_context():
+            main_branch_id = Branch.query.filter_by(
+                document_id=document["id"], is_main=True
+            ).first().id
+
+        self._commit(branch["id"], "line one\nBRANCH edit\nline three")
+        self._commit(main_branch_id, "line one\nMAIN edit\nline three")
+
+        response = self.client.get(f"/api/branches/{branch['id']}/merge/preview")
+        self.assertEqual(response.status_code, 200)
+        payload = response.get_json()
+
+        self.assertTrue(payload["has_conflicts"])
+        conflict_hunks = [h for h in payload["hunks"] if h["kind"] == "conflict"]
+        self.assertTrue(len(conflict_hunks) >= 1)
+
+    def test_merge_preview_non_overlapping(self):
+        """Preview when changes are on different lines → no conflicts."""
+        document = self._create_document(
+            "line one\nline two\nline three\nline four\nline five"
+        )
+        branch = self._create_branch(document["id"])
+
+        with self.app.app_context():
+            main_branch_id = Branch.query.filter_by(
+                document_id=document["id"], is_main=True
+            ).first().id
+
+        # Branch changes line 2, Main changes line 4
+        self._commit(branch["id"], "line one\nBRANCH\nline three\nline four\nline five")
+        self._commit(main_branch_id, "line one\nline two\nline three\nMAIN\nline five")
+
+        response = self.client.get(f"/api/branches/{branch['id']}/merge/preview")
+        self.assertEqual(response.status_code, 200)
+        payload = response.get_json()
+
+        self.assertFalse(payload["has_conflicts"])
+
+    # ── Merge with resolutions ─────────────────────────────────────
+
+    def test_merge_with_resolutions_pick_main(self):
+        """Resolve conflict by picking Main side."""
+        document = self._create_document("line one\nline two\nline three")
+        branch = self._create_branch(document["id"])
+
+        with self.app.app_context():
+            main_branch_id = Branch.query.filter_by(
+                document_id=document["id"], is_main=True
+            ).first().id
+
+        self._commit(branch["id"], "line one\nBRANCH edit\nline three")
+        self._commit(main_branch_id, "line one\nMAIN edit\nline three")
+
+        # Get preview to find conflict hunk IDs
+        preview = self.client.get(
+            f"/api/branches/{branch['id']}/merge/preview"
+        ).get_json()
+        conflict_hunks = [h for h in preview["hunks"] if h["kind"] == "conflict"]
+        resolutions = {h["id"]: "main" for h in conflict_hunks}
+
+        # Merge with resolutions
+        response = self.client.post(
+            f"/api/branches/{branch['id']}/merge",
+            json={"resolutions": resolutions},
+        )
+        self.assertEqual(response.status_code, 200)
+        payload = response.get_json()
+        self.assertEqual(payload["branch_status"], "merged")
+        self.assertIn("MAIN edit", payload["main_content"])
+
+    def test_merge_with_resolutions_pick_branch(self):
+        """Resolve conflict by picking branch side."""
+        document = self._create_document("line one\nline two\nline three")
+        branch = self._create_branch(document["id"])
+
+        with self.app.app_context():
+            main_branch_id = Branch.query.filter_by(
+                document_id=document["id"], is_main=True
+            ).first().id
+
+        self._commit(branch["id"], "line one\nBRANCH edit\nline three")
+        self._commit(main_branch_id, "line one\nMAIN edit\nline three")
+
+        preview = self.client.get(
+            f"/api/branches/{branch['id']}/merge/preview"
+        ).get_json()
+        conflict_hunks = [h for h in preview["hunks"] if h["kind"] == "conflict"]
+        resolutions = {h["id"]: "branch" for h in conflict_hunks}
+
+        response = self.client.post(
+            f"/api/branches/{branch['id']}/merge",
+            json={"resolutions": resolutions},
+        )
+        self.assertEqual(response.status_code, 200)
+        payload = response.get_json()
+        self.assertEqual(payload["branch_status"], "merged")
+        self.assertIn("BRANCH edit", payload["main_content"])
+
+    def test_merge_with_missing_resolutions_returns_400(self):
+        """Merge fails if not all conflict hunks have resolutions."""
+        document = self._create_document("line one\nline two\nline three")
+        branch = self._create_branch(document["id"])
+
+        with self.app.app_context():
+            main_branch_id = Branch.query.filter_by(
+                document_id=document["id"], is_main=True
+            ).first().id
+
+        self._commit(branch["id"], "line one\nBRANCH edit\nline three")
+        self._commit(main_branch_id, "line one\nMAIN edit\nline three")
+
+        response = self.client.post(
+            f"/api/branches/{branch['id']}/merge",
+            json={"resolutions": {}},  # Empty — missing conflict resolutions
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("Missing resolutions", response.get_json()["error"])
+
+    def test_merge_with_custom_resolution(self):
+        """Resolve conflict with custom text."""
+        document = self._create_document("line one\nline two\nline three")
+        branch = self._create_branch(document["id"])
+
+        with self.app.app_context():
+            main_branch_id = Branch.query.filter_by(
+                document_id=document["id"], is_main=True
+            ).first().id
+
+        self._commit(branch["id"], "line one\nBRANCH edit\nline three")
+        self._commit(main_branch_id, "line one\nMAIN edit\nline three")
+
+        preview = self.client.get(
+            f"/api/branches/{branch['id']}/merge/preview"
+        ).get_json()
+        conflict_hunks = [h for h in preview["hunks"] if h["kind"] == "conflict"]
+        resolutions = {h["id"]: {"custom": "CUSTOM resolution"} for h in conflict_hunks}
+
+        response = self.client.post(
+            f"/api/branches/{branch['id']}/merge",
+            json={"resolutions": resolutions},
+        )
+        self.assertEqual(response.status_code, 200)
+        payload = response.get_json()
+        self.assertIn("CUSTOM resolution", payload["main_content"])
 
 
 if __name__ == "__main__":
