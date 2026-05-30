@@ -1,7 +1,7 @@
 from flask import Blueprint, jsonify, request
 
 from models import db, Document, Branch, Commit
-from utils import compute_visual_diff, make_diff, reconstruct_branch_content
+from utils import compute_visual_diff, extract_plain_text, make_diff, reconstruct_branch_content
 
 documents_bp = Blueprint("documents", __name__)
 
@@ -239,6 +239,20 @@ def update_document(doc_id):
 
     db.session.commit()
     return jsonify(document_to_dict(doc))
+
+
+@documents_bp.route("/documents/<int:doc_id>/export", methods=["GET"])
+def export_document(doc_id):
+    doc = Document.query.get(doc_id)
+    if doc is None:
+        return jsonify({"error": "document not found"}), 404
+
+    main_branch = Branch.query.filter_by(document_id=doc.id, is_main=True).first()
+    if main_branch is None:
+        return jsonify({"error": "main branch not found"}), 500
+
+    raw = reconstruct_branch_content(main_branch)
+    return jsonify({"title": doc.title, "content": extract_plain_text(raw)})
 
 
 @documents_bp.route("/documents/<int:doc_id>", methods=["DELETE"])
