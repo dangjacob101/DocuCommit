@@ -278,6 +278,76 @@ class SafeMergeTest(unittest.TestCase):
         self.assertGreater(preview["summary"]["total_hunks"], 0)
         self.assertTrue(preview["progression"]["main_diverged"])
 
+    def test_merge_unauthenticated_rejected(self):
+        doc = self._create_document("Hello")
+        branch = self._create_branch(doc["id"])
+        client = self.app.test_client()
+
+        r1 = client.get(f"/api/branches/{branch['id']}/merge/preview")
+        self.assertEqual(r1.status_code, 401)
+
+        r2 = client.post(f"/api/branches/{branch['id']}/merge")
+        self.assertEqual(r2.status_code, 401)
+
+    def test_merge_unauthorized_rejected(self):
+        doc = self._create_document("Hello")
+        branch = self._create_branch(doc["id"])
+        client = self.app.test_client()
+        r_reg = client.post(
+            "/api/auth/register",
+            json={"username": "alice", "password": "CS35LTeamprofile2!"},
+        )
+        self.assertEqual(r_reg.status_code, 201)
+
+        r1 = client.get(f"/api/branches/{branch['id']}/merge/preview")
+        self.assertEqual(r1.status_code, 403)
+
+        r2 = client.post(f"/api/branches/{branch['id']}/merge")
+        self.assertEqual(r2.status_code, 403)
+
+    def test_mid_file_insertion_preserved(self):
+        doc = self._create_document("line one\nline two")
+        branch = self._create_branch(doc["id"])
+        self._commit(branch["id"], "line one\ninserted\nline two")
+
+        r = self.client.post(f"/api/branches/{branch['id']}/merge")
+        self.assertEqual(r.status_code, 200)
+        self.assertIn("inserted", r.get_json()["main_content"])
+
+    def test_invalid_custom_resolution_type_rejected(self):
+        doc = self._create_document("line one\nline two")
+        branch = self._create_branch(doc["id"])
+        main_id = self._main_branch_id(doc["id"])
+
+        self._commit(branch["id"], "line one\nBRANCH\nline two")
+        self._commit(main_id, "line one\nMAIN\nline two")
+
+        preview = self.client.get(f"/api/branches/{branch['id']}/merge/preview").get_json()
+        conflicts = [h for h in preview["hunks"] if h["kind"] == "conflict"]
+        self.assertGreaterEqual(len(conflicts), 1)
+
+        resolutions = {conflicts[0]["id"]: {"custom": 123}}
+        r = self.client.post(
+            f"/api/branches/{branch['id']}/merge",
+            json={"resolutions": resolutions},
+        )
+        self.assertEqual(r.status_code, 400)
+        self.assertIn("must be a string", r.get_json()["error"])
+
+    def test_clean_diverged_merge_auto_succeeds(self):
+        doc = self._create_document("line one\nline two\nline three")
+        branch = self._create_branch(doc["id"])
+        main_id = self._main_branch_id(doc["id"])
+
+        self._commit(branch["id"], "line one\nBRANCH\nline three")
+        self._commit(main_id, "MAIN\nline two\nline three")
+
+        r = self.client.post(f"/api/branches/{branch['id']}/merge")
+        self.assertEqual(r.status_code, 200)
+        content = r.get_json()["main_content"]
+        self.assertIn("BRANCH", content)
+        self.assertIn("MAIN", content)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -71,16 +71,24 @@ def three_way_merge(
     hunk_id = 0
     base_len = len(base_lines)
     base_idx = 0
+    emitted_regions = set()
 
     while base_idx < base_len:
         m_region = main_change_map.get(base_idx)
+        if m_region and id(m_region) in emitted_regions:
+            m_region = None
+
         b_region = branch_change_map.get(base_idx)
+        if b_region and id(b_region) in emitted_regions:
+            b_region = None
 
         if m_region is not None and b_region is not None:
-            m_new, b_new, region_end = _collect_overlapping(
+            m_new, b_new, region_end, visited_main, visited_branch = _collect_overlapping(
                 base_idx, main_change_map, branch_change_map,
                 base_len, base_lines,
             )
+            emitted_regions.update(visited_main)
+            emitted_regions.update(visited_branch)
 
             m_text = "".join(m_new).rstrip("\n")
             b_text = "".join(b_new).rstrip("\n")
@@ -109,6 +117,7 @@ def three_way_merge(
                 "main": m_text,
             })
             hunk_id += 1
+            emitted_regions.add(id(m_region))
             base_idx = m_region["base_end"]
 
         elif b_region is not None:
@@ -119,14 +128,15 @@ def three_way_merge(
                 "branch": b_text,
             })
             hunk_id += 1
+            emitted_regions.add(id(b_region))
             base_idx = b_region["base_end"]
 
         else:
             equal_start = base_idx
             while (
                 base_idx < base_len
-                and base_idx not in main_change_map
-                and base_idx not in branch_change_map
+                and (base_idx not in main_change_map or id(main_change_map[base_idx]) in emitted_regions)
+                and (base_idx not in branch_change_map or id(branch_change_map[base_idx]) in emitted_regions)
             ):
                 base_idx += 1
             text = "".join(base_lines[equal_start:base_idx]).rstrip("\n")
@@ -149,8 +159,11 @@ def _build_change_map(regions):
     change_map = {}
     for region in regions:
         if region["kind"] == "changed":
-            for idx in range(region["base_start"], region["base_end"]):
-                change_map[idx] = region
+            if region["base_start"] == region["base_end"]:
+                change_map[region["base_start"]] = region
+            else:
+                for idx in range(region["base_start"], region["base_end"]):
+                    change_map[idx] = region
     return change_map
 
 
@@ -179,11 +192,17 @@ def _collect_overlapping(start_idx, main_map, branch_map, base_len, base_lines):
     main_new = _reconstruct_span(start_idx, end, main_map, base_lines)
     branch_new = _reconstruct_span(start_idx, end, branch_map, base_lines)
 
-    return main_new, branch_new, end
+    return main_new, branch_new, end, visited_main, visited_branch
 
 
 def _reconstruct_span(start, end, change_map, base_lines):
     """Rebuild the new-side text for a span, preserving unchanged base lines."""
+    if start == end:
+        region = change_map.get(start)
+        if region is not None:
+            return list(region["new_lines"])
+        return []
+
     result = []
     idx = start
     emitted_regions = set()
@@ -261,6 +280,10 @@ def apply_resolutions(
             elif res == "branch":
                 parts.append(hunk["branch"])
             elif isinstance(res, dict) and "custom" in res:
+                if not isinstance(res["custom"], str):
+                    raise ValueError(
+                        f"Custom resolution for hunk {hunk['id']} must be a string"
+                    )
                 parts.append(res["custom"])
             else:
                 raise ValueError(

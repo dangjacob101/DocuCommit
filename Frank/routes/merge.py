@@ -1,6 +1,7 @@
 from flask import Blueprint, jsonify, request
 
-from models import db, Branch, Commit
+from models import db, Branch, Commit, Document
+from routes.auth import get_current_user
 from utils import reconstruct_branch_content, reconstruct_content, make_diff
 from merge_engine import (
     three_way_merge,
@@ -44,9 +45,18 @@ def _overwrite_main_with_branch(main_branch, branch):
 @merge_bp.route("/branches/<int:branch_id>/merge/preview", methods=["GET"])
 def merge_preview(branch_id):
     """Return a three-way merge preview with conflict hunks and summary stats."""
+    user = get_current_user()
+    if user is None:
+        return jsonify({"error": "authentication required"}), 401
+
     branch = Branch.query.get(branch_id)
     if branch is None:
         return jsonify({"error": "branch not found"}), 404
+
+    doc = Document.query.get(branch.document_id)
+    if doc is None or doc.owner_id != user.id:
+        return jsonify({"error": "access denied"}), 403
+
     if branch.is_main:
         return jsonify({"error": "cannot merge the Main branch into itself"}), 400
     if branch.status != "active":
@@ -80,9 +90,18 @@ def merge_preview(branch_id):
 
 @merge_bp.route("/branches/<int:branch_id>/merge", methods=["POST"])
 def merge_branch(branch_id):
+    user = get_current_user()
+    if user is None:
+        return jsonify({"error": "authentication required"}), 401
+
     branch = Branch.query.get(branch_id)
     if branch is None:
         return jsonify({"error": "branch not found"}), 404
+
+    doc = Document.query.get(branch.document_id)
+    if doc is None or doc.owner_id != user.id:
+        return jsonify({"error": "access denied"}), 403
+
     if branch.is_main:
         return jsonify({"error": "cannot merge the Main branch into itself"}), 400
     if branch.status != "active":
@@ -122,12 +141,14 @@ def merge_branch(branch_id):
         })
 
     if resolutions is None:
-        return jsonify({
-            "error": "Main has diverged since this branch was created. "
-                     "Conflict resolution required.",
-            "conflict": True,
-            "branch_id": branch.id,
-        }), 409
+        if progression["has_conflicts"]:
+            return jsonify({
+                "error": "Main has diverged since this branch was created. "
+                         "Conflict resolution required.",
+                "conflict": True,
+                "branch_id": branch.id,
+            }), 409
+        resolutions = {}
 
     hunks = three_way_merge(base_text, main_text, branch_text)
 
