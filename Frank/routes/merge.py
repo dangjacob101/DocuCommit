@@ -2,13 +2,18 @@ from flask import Blueprint, jsonify, request
 
 from models import db, Branch, Commit
 from utils import reconstruct_branch_content, reconstruct_content, make_diff
-from merge_engine import three_way_merge, apply_resolutions
+from merge_engine import (
+    three_way_merge,
+    apply_resolutions,
+    validate_linear_progression,
+    merge_summary,
+)
 
 merge_bp = Blueprint("merge", __name__)
 
 
 def _get_base_text(branch, main_branch):
-    """Reconstruct the common-ancestor text (the snapshot at branch point)."""
+    """Reconstruct the common-ancestor text at the branch point."""
     if branch.branched_from_commit_id is not None:
         base_commits = Commit.query.filter(
             Commit.branch_id == main_branch.id,
@@ -17,13 +22,6 @@ def _get_base_text(branch, main_branch):
     else:
         base_commits = []
     return reconstruct_content(base_commits)
-
-
-def _main_has_new_commits(main_branch, branched_from_commit_id):
-    query = Commit.query.filter(Commit.branch_id == main_branch.id)
-    if branched_from_commit_id is not None:
-        query = query.filter(Commit.id > branched_from_commit_id)
-    return query.first() is not None
 
 
 def _overwrite_main_with_branch(main_branch, branch):
@@ -43,19 +41,16 @@ def _overwrite_main_with_branch(main_branch, branch):
     return branch_content, merge_commit
 
 
-# ── Merge preview ──────────────────────────────────────────────────
-
 @merge_bp.route("/branches/<int:branch_id>/merge/preview", methods=["GET"])
 def merge_preview(branch_id):
-    """Return a three-way merge preview with conflict hunks.
-
-    The frontend uses this to populate the ConflictResolver UI.
-    """
+    """Return a three-way merge preview with conflict hunks and summary stats."""
     branch = Branch.query.get(branch_id)
     if branch is None:
         return jsonify({"error": "branch not found"}), 404
     if branch.is_main:
         return jsonify({"error": "cannot merge the Main branch into itself"}), 400
+    if branch.status != "active":
+        return jsonify({"error": "branch has already been merged"}), 409
 
     main_branch = Branch.query.filter_by(
         document_id=branch.document_id, is_main=True
@@ -69,6 +64,8 @@ def merge_preview(branch_id):
 
     hunks = three_way_merge(base_text, main_text, branch_text)
     has_conflicts = any(h["kind"] == "conflict" for h in hunks)
+    summary = merge_summary(base_text, main_text, branch_text)
+    progression = validate_linear_progression(base_text, main_text, branch_text)
 
     return jsonify({
         "branch_id": branch.id,
@@ -76,10 +73,10 @@ def merge_preview(branch_id):
         "main_name": main_branch.name,
         "has_conflicts": has_conflicts,
         "hunks": hunks,
+        "summary": summary,
+        "progression": progression,
     })
 
-
-# ── Merge execution ───────────────────────────────────────────────
 
 @merge_bp.route("/branches/<int:branch_id>/merge", methods=["POST"])
 def merge_branch(branch_id):
@@ -97,12 +94,22 @@ def merge_branch(branch_id):
     if main_branch is None:
         return jsonify({"error": "main branch not found"}), 500
 
-    diverged = _main_has_new_commits(main_branch, branch.branched_from_commit_id)
+    branch_has_commits = Commit.query.filter_by(branch_id=branch.id).first() is not None
+    if not branch_has_commits:
+        base_text = _get_base_text(branch, main_branch)
+        branch_text = reconstruct_branch_content(branch)
+        if base_text == branch_text:
+            return jsonify({"error": "branch has no changes to merge"}), 400
+
+    base_text = _get_base_text(branch, main_branch)
+    main_text = reconstruct_branch_content(main_branch)
+    branch_text = reconstruct_branch_content(branch)
+
+    progression = validate_linear_progression(base_text, main_text, branch_text)
     data = request.get_json(silent=True) or {}
     resolutions = data.get("resolutions")
 
-    # ── Fast-forward (clean) merge ─────────────────────────────────
-    if not diverged:
+    if progression["is_linear"]:
         main_content, merge_commit = _overwrite_main_with_branch(main_branch, branch)
         db.session.commit()
         return jsonify({
@@ -114,9 +121,7 @@ def merge_branch(branch_id):
             "main_content": main_content,
         })
 
-    # ── Diverged: conflict merge ───────────────────────────────────
     if resolutions is None:
-        # No resolutions provided — tell the frontend to show ConflictResolver
         return jsonify({
             "error": "Main has diverged since this branch was created. "
                      "Conflict resolution required.",
@@ -124,14 +129,8 @@ def merge_branch(branch_id):
             "branch_id": branch.id,
         }), 409
 
-    # Resolutions provided — perform three-way merge
-    base_text = _get_base_text(branch, main_branch)
-    main_text = reconstruct_branch_content(main_branch)
-    branch_text = reconstruct_branch_content(branch)
-
     hunks = three_way_merge(base_text, main_text, branch_text)
 
-    # Validate all conflict hunks have resolutions
     conflict_ids = {h["id"] for h in hunks if h["kind"] == "conflict"}
     missing = conflict_ids - set(resolutions.keys())
     if missing:
@@ -145,14 +144,12 @@ def merge_branch(branch_id):
     except ValueError as exc:
         return jsonify({"error": str(exc)}), 400
 
-    # Create the merge commit on Main
-    current_main_text = main_text
     merge_commit = None
-    if current_main_text != merged_text:
+    if main_text != merged_text:
         merge_commit = Commit(
             branch_id=main_branch.id,
             message=f"Merge branch '{branch.name}' into Main (conflicts resolved)",
-            diff_patch=make_diff(current_main_text, merged_text),
+            diff_patch=make_diff(main_text, merged_text),
         )
         db.session.add(merge_commit)
 

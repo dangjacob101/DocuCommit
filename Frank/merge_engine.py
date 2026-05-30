@@ -1,45 +1,19 @@
-"""Three-way merge engine for DocuCommit.
+"""Three-way merge engine for DocuCommit — free of Flask/SQLAlchemy dependencies."""
 
-Compares two diverged versions (main and branch) against their common
-ancestor (base) to classify every region of the document as unchanged,
-changed-only-on-one-side (auto-resolved), or changed-on-both-sides
-(conflict requiring user resolution).
-
-This module is intentionally free of Flask / SQLAlchemy dependencies so
-it can be unit-tested in isolation.
-"""
-
-from typing import List, Dict, Any, Optional, Tuple
+from typing import List, Dict, Any, Tuple
 
 from diff_engine import compute_edit_script, EDIT_EQUAL, EDIT_DELETE, EDIT_INSERT
 
-
-# ── Region extraction ──────────────────────────────────────────────
-
 def _edits_to_regions(edits):
-    """Convert an edit script into a list of regions.
-
-    A *region* is a contiguous run of operations that share the same
-    "change kind": either all EQUAL, or a block of DELETE/INSERT ops.
-
-    Each region is a dict:
-        base_start  – first base-line index consumed (inclusive)
-        base_end    – last base-line index consumed (exclusive)
-        kind        – "equal" | "changed"
-        base_lines  – list of base-side lines in this region
-        new_lines   – list of new-side lines in this region
-
-    Walking the regions in order reconstructs the full edit.
-    """
+    """Convert an edit script into contiguous regions of equal or changed lines."""
     regions = []
     base_idx = 0
-
     i = 0
+
     while i < len(edits):
         op, content = edits[i]
 
         if op == EDIT_EQUAL:
-            # Collect consecutive equal ops
             base_start = base_idx
             base_lines = []
             while i < len(edits) and edits[i][0] == EDIT_EQUAL:
@@ -54,7 +28,6 @@ def _edits_to_regions(edits):
                 "new_lines": list(base_lines),
             })
         else:
-            # Collect a change block: deletes then inserts
             base_start = base_idx
             base_lines = []
             new_lines = []
@@ -77,20 +50,10 @@ def _edits_to_regions(edits):
     return regions
 
 
-# ── Three-way merge ────────────────────────────────────────────────
-
 def three_way_merge(
     base_text: str, main_text: str, branch_text: str
 ) -> List[Dict[str, Any]]:
-    """Perform a three-way merge and return a list of hunks.
-
-    Each hunk is a dict with:
-        id    – unique string identifier (e.g. "h0", "h1", ...)
-        kind  – "equal" | "auto-main" | "auto-branch" | "conflict"
-        text  – (equal only) the unchanged text
-        main  – (auto-main / conflict) the main-side text
-        branch – (auto-branch / conflict) the branch-side text
-    """
+    """Perform a three-way merge and return a list of classified hunks."""
     base_lines = base_text.splitlines(keepends=True) if base_text else []
     main_lines = main_text.splitlines(keepends=True) if main_text else []
     branch_lines = branch_text.splitlines(keepends=True) if branch_text else []
@@ -101,11 +64,9 @@ def three_way_merge(
     main_regions = _edits_to_regions(main_edits)
     branch_regions = _edits_to_regions(branch_edits)
 
-    # Build change maps: base_line_index → region for changed regions only
     main_change_map = _build_change_map(main_regions)
     branch_change_map = _build_change_map(branch_regions)
 
-    # Walk through base lines, identifying regions
     hunks = []
     hunk_id = 0
     base_len = len(base_lines)
@@ -116,21 +77,15 @@ def three_way_merge(
         b_region = branch_change_map.get(base_idx)
 
         if m_region is not None and b_region is not None:
-            # Both sides changed — determine overlap
-            m_end = m_region["base_end"]
-            b_end = b_region["base_end"]
-            region_end = max(m_end, b_end)
-
-            # Gather all main and branch new_lines across overlapping regions
             m_new, b_new, region_end = _collect_overlapping(
-                base_idx, main_change_map, branch_change_map, base_len
+                base_idx, main_change_map, branch_change_map,
+                base_len, base_lines,
             )
 
             m_text = "".join(m_new).rstrip("\n")
             b_text = "".join(b_new).rstrip("\n")
 
             if m_text == b_text:
-                # Same change on both sides — auto-resolve
                 hunks.append({
                     "id": f"h{hunk_id}",
                     "kind": "equal",
@@ -147,7 +102,6 @@ def three_way_merge(
             base_idx = region_end
 
         elif m_region is not None:
-            # Only Main changed
             m_text = "".join(m_region["new_lines"]).rstrip("\n")
             hunks.append({
                 "id": f"h{hunk_id}",
@@ -158,7 +112,6 @@ def three_way_merge(
             base_idx = m_region["base_end"]
 
         elif b_region is not None:
-            # Only branch changed
             b_text = "".join(b_region["new_lines"]).rstrip("\n")
             hunks.append({
                 "id": f"h{hunk_id}",
@@ -169,7 +122,6 @@ def three_way_merge(
             base_idx = b_region["base_end"]
 
         else:
-            # Unchanged on both sides — collect consecutive equal lines
             equal_start = base_idx
             while (
                 base_idx < base_len
@@ -185,7 +137,6 @@ def three_way_merge(
             })
             hunk_id += 1
 
-    # Handle trailing inserts (new lines added past the end of base)
     _append_trailing_inserts(
         hunks, hunk_id, main_regions, branch_regions, base_len
     )
@@ -194,7 +145,7 @@ def three_way_merge(
 
 
 def _build_change_map(regions):
-    """Map each base line index to its changed region (skip equal regions)."""
+    """Map each base-line index to its changed region."""
     change_map = {}
     for region in regions:
         if region["kind"] == "changed":
@@ -203,16 +154,10 @@ def _build_change_map(regions):
     return change_map
 
 
-def _collect_overlapping(start_idx, main_map, branch_map, base_len):
-    """Collect new-lines from overlapping change regions on both sides.
-
-    When regions overlap, we extend to cover the union of both spans,
-    which may pull in additional adjacent changed regions.
-    """
-    # Find the full extent of overlapping changes
+def _collect_overlapping(start_idx, main_map, branch_map, base_len, base_lines):
+    """Collect new-lines from overlapping change regions on both sides."""
     idx = start_idx
     end = start_idx
-
     visited_main = set()
     visited_branch = set()
 
@@ -227,29 +172,18 @@ def _collect_overlapping(start_idx, main_map, branch_map, base_len):
             visited_branch.add(id(b))
             end = max(end, b["base_end"])
 
-        if m is None and b is None:
-            # Only advance past unchanged lines if we haven't reached end
-            if idx >= end:
-                break
+        if m is None and b is None and idx >= end:
+            break
         idx += 1
 
-    # Reconstruct new lines for the overlapping span
-    main_new = _reconstruct_span(start_idx, end, main_map, base_len)
-    branch_new = _reconstruct_span(start_idx, end, branch_map, base_len)
+    main_new = _reconstruct_span(start_idx, end, main_map, base_lines)
+    branch_new = _reconstruct_span(start_idx, end, branch_map, base_lines)
 
     return main_new, branch_new, end
 
 
-def _reconstruct_span(start, end, change_map, base_len):
-    """Reconstruct the new-side text for a span of base lines.
-
-    For base lines covered by a changed region, emit the region's new_lines
-    (only once per region). For unchanged base lines, emit them as-is.
-    """
-    # We need the base_lines for unchanged portions — get them from any
-    # equal region or from the change_map's base_lines.
-    # Actually we need the original base lines. We'll collect from the
-    # change regions themselves.
+def _reconstruct_span(start, end, change_map, base_lines):
+    """Rebuild the new-side text for a span, preserving unchanged base lines."""
     result = []
     idx = start
     emitted_regions = set()
@@ -261,22 +195,14 @@ def _reconstruct_span(start, end, change_map, base_len):
             result.extend(region["new_lines"])
             idx = region["base_end"]
         else:
-            # This base line is unchanged on this side — but we don't have
-            # the base_lines array here. We handle this by noting that if a
-            # line isn't in the change_map, it was equal. We need the base
-            # text. We'll pass it through from the caller instead.
-            # For now, skip — the overlapping logic should only be called
-            # when both sides have changes at this position.
+            result.append(base_lines[idx])
             idx += 1
 
     return result
 
 
 def _append_trailing_inserts(hunks, hunk_id, main_regions, branch_regions, base_len):
-    """Handle inserts that appear after the last base line.
-
-    These are pure additions at the end of the document by one or both sides.
-    """
+    """Handle inserts added past the end of the base document."""
     main_trailing = []
     branch_trailing = []
 
@@ -288,41 +214,33 @@ def _append_trailing_inserts(hunks, hunk_id, main_regions, branch_regions, base_
         if r["kind"] == "changed" and r["base_start"] >= base_len and r["base_start"] == r["base_end"]:
             branch_trailing.extend(r["new_lines"])
 
-    if main_trailing or branch_trailing:
-        m_text = "".join(main_trailing).rstrip("\n")
-        b_text = "".join(branch_trailing).rstrip("\n")
+    if not main_trailing and not branch_trailing:
+        return
 
-        if main_trailing and branch_trailing:
-            if m_text == b_text:
-                hunks.append({"id": f"h{hunk_id}", "kind": "equal", "text": m_text})
-            else:
-                hunks.append({
-                    "id": f"h{hunk_id}",
-                    "kind": "conflict",
-                    "main": m_text,
-                    "branch": b_text,
-                })
-        elif main_trailing:
-            hunks.append({"id": f"h{hunk_id}", "kind": "auto-main", "main": m_text})
+    m_text = "".join(main_trailing).rstrip("\n")
+    b_text = "".join(branch_trailing).rstrip("\n")
+
+    if main_trailing and branch_trailing:
+        if m_text == b_text:
+            hunks.append({"id": f"h{hunk_id}", "kind": "equal", "text": m_text})
         else:
-            hunks.append({"id": f"h{hunk_id}", "kind": "auto-branch", "branch": b_text})
+            hunks.append({
+                "id": f"h{hunk_id}",
+                "kind": "conflict",
+                "main": m_text,
+                "branch": b_text,
+            })
+    elif main_trailing:
+        hunks.append({"id": f"h{hunk_id}", "kind": "auto-main", "main": m_text})
+    else:
+        hunks.append({"id": f"h{hunk_id}", "kind": "auto-branch", "branch": b_text})
 
-
-# ── Resolution application ─────────────────────────────────────────
 
 def apply_resolutions(
     hunks: List[Dict[str, Any]],
     resolutions: Dict[str, Any],
 ) -> str:
-    """Produce final merged text by applying user resolutions to hunks.
-
-    *resolutions* maps hunk id → "main" | "branch" | {"custom": "..."}
-
-    For non-conflict hunks the resolution is ignored (auto-applied).
-    For conflict hunks a resolution must be present.
-
-    Returns the merged document as a single string.
-    """
+    """Produce final merged text by applying user resolutions to conflict hunks."""
     parts = []
 
     for hunk in hunks:
@@ -330,13 +248,10 @@ def apply_resolutions(
 
         if kind == "equal":
             parts.append(hunk["text"])
-
         elif kind == "auto-main":
             parts.append(hunk["main"])
-
         elif kind == "auto-branch":
             parts.append(hunk["branch"])
-
         elif kind == "conflict":
             res = resolutions.get(hunk["id"])
             if res is None:
@@ -353,3 +268,50 @@ def apply_resolutions(
                 )
 
     return "\n".join(parts)
+
+
+def validate_linear_progression(
+    base_text: str, main_text: str, branch_text: str
+) -> Dict[str, Any]:
+    """Check whether a branch→main merge is a clean fast-forward or has conflicts."""
+    main_diverged = (base_text != main_text)
+
+    if not main_diverged:
+        return {
+            "is_linear": True,
+            "main_diverged": False,
+            "has_conflicts": False,
+            "conflict_count": 0,
+            "auto_resolvable": True,
+        }
+
+    hunks = three_way_merge(base_text, main_text, branch_text)
+    conflict_hunks = [h for h in hunks if h["kind"] == "conflict"]
+
+    return {
+        "is_linear": False,
+        "main_diverged": True,
+        "has_conflicts": len(conflict_hunks) > 0,
+        "conflict_count": len(conflict_hunks),
+        "auto_resolvable": len(conflict_hunks) == 0,
+    }
+
+
+def merge_summary(
+    base_text: str, main_text: str, branch_text: str
+) -> Dict[str, Any]:
+    """Compute merge statistics without performing the merge."""
+    hunks = three_way_merge(base_text, main_text, branch_text)
+
+    counts = {"equal": 0, "auto-main": 0, "auto-branch": 0, "conflict": 0}
+    for h in hunks:
+        counts[h["kind"]] = counts.get(h["kind"], 0) + 1
+
+    return {
+        "total_hunks": len(hunks),
+        "equal_hunks": counts["equal"],
+        "auto_main_hunks": counts["auto-main"],
+        "auto_branch_hunks": counts["auto-branch"],
+        "conflict_hunks": counts["conflict"],
+        "is_clean": counts["conflict"] == 0,
+    }
