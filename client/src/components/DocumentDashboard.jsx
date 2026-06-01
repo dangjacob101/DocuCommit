@@ -9,14 +9,16 @@ export default function DocumentDashboard() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
+  const [searchQuery, setSearchQuery] = useState('')
+
   const [editingDocId, setEditingDocId] = useState(null)
   const [editTitleVal, setEditTitleVal] = useState('')
   const [savingTitle, setSavingTitle] = useState(false)
 
-  async function load() {
+  async function load(query = '') {
     try {
       setLoading(true)
-      const rows = await listDocuments()
+      const rows = await listDocuments(query)
       setDocs(rows)
       setError(null)
     } catch (e) {
@@ -29,6 +31,13 @@ export default function DocumentDashboard() {
   useEffect(() => {
     load()
   }, [])
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      load(searchQuery)
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [searchQuery])
 
   async function openDocument(doc) {
     try {
@@ -63,15 +72,38 @@ export default function DocumentDashboard() {
         <h2>Documents</h2>
         <button onClick={() => navigate('/create-new-document')}>New Document</button>
       </div>
+      <div className="search-bar">
+        <span className="search-icon">🔍</span>
+        <input
+          id="search-documents"
+          type="text"
+          placeholder="Search documents by title..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
+        {searchQuery && (
+          <button
+            className="search-clear"
+            onClick={() => setSearchQuery('')}
+            title="Clear search"
+          >
+            ✕
+          </button>
+        )}
+      </div>
       {loading && <p className="muted">Loading...</p>}
       {error && (
         <div className="error error-row">
           <span>{error}</span>
-          <button onClick={load}>Retry</button>
+          <button onClick={() => load(searchQuery)}>Retry</button>
         </div>
       )}
       {!loading && !error && docs.length === 0 && (
-        <p className="muted">No documents yet. Create one to get started.</p>
+        <p className="muted">
+          {searchQuery
+            ? `No documents matching "${searchQuery}".`
+            : 'No documents yet. Create one to get started.'}
+        </p>
       )}
       <ul className="doc-list">
         {docs.map((d) => (

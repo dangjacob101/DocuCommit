@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { getDocument, listBranches, mergeBranch } from '../api.js'
-import { getDocument, listBranches, updateDocument } from '../api.js'
+import { getDocument, listBranches, mergeBranch, updateDocument, exportDocument } from '../api.js'
 import { slugify } from '../utils.js'
 import RichEditor from './RichEditor.jsx'
 import BranchPicker from './BranchPicker.jsx'
@@ -108,6 +107,9 @@ export default function Editor() {
       win.document.close()
     } catch (e) {
       setError(e.message)
+    }
+  }
+
   async function handleSaveTitle() {
     if (!editTitleVal.trim() || editTitleVal === doc.title) {
       setIsEditingTitle(false)

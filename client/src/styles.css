@@ -147,6 +147,62 @@ label textarea {
   min-height: 320px;
 }
 
+/* ── Search Bar ── */
+
+.search-bar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.search-bar input[type="text"] {
+  width: 100%;
+  padding: 9px 34px 9px 36px;
+  border: 1px solid var(--input-border);
+  border-radius: var(--radius);
+  font: inherit;
+  font-size: 14px;
+  background: var(--bg);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.search-bar input[type="text"]:focus {
+  outline: none;
+  border-color: var(--text);
+  box-shadow: 0 0 0 2px rgba(26, 26, 26, 0.08);
+}
+
+.search-bar input[type="text"]::placeholder {
+  color: var(--text-muted);
+}
+
+.search-icon {
+  position: absolute;
+  left: 10px;
+  font-size: 14px;
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+.search-clear {
+  position: absolute;
+  right: 6px;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 14px;
+  padding: 4px 6px;
+  cursor: pointer;
+  border-radius: 50%;
+  line-height: 1;
+}
+
+.search-clear:hover {
+  color: var(--text);
+  background: var(--border-soft);
+}
+
 .doc-list {
   list-style: none;
   padding: 0;
@@ -871,7 +927,9 @@ button.pill:hover {
   font-family: 'Georgia', 'Times New Roman', serif;
   font-size: 14px;
   line-height: 1.6;
-  /* ─── Login Page ─────────────────────────────────────────────────────────── */
+}
+
+/* ─── Login Page ─────────────────────────────────────────────────────────── */
 
   .login-section {
     display: flex;
@@ -969,4 +1027,3 @@ button.pill:hover {
     background: #d4edda;
     color: #155724;
   }
-}
