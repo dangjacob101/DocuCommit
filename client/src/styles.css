@@ -147,6 +147,62 @@ label textarea {
   min-height: 320px;
 }
 
+/* ── Search Bar ── */
+
+.search-bar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.search-bar input[type="text"] {
+  width: 100%;
+  padding: 9px 34px 9px 36px;
+  border: 1px solid var(--input-border);
+  border-radius: var(--radius);
+  font: inherit;
+  font-size: 14px;
+  background: var(--bg);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.search-bar input[type="text"]:focus {
+  outline: none;
+  border-color: var(--text);
+  box-shadow: 0 0 0 2px rgba(26, 26, 26, 0.08);
+}
+
+.search-bar input[type="text"]::placeholder {
+  color: var(--text-muted);
+}
+
+.search-icon {
+  position: absolute;
+  left: 10px;
+  font-size: 14px;
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+.search-clear {
+  position: absolute;
+  right: 6px;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 14px;
+  padding: 4px 6px;
+  cursor: pointer;
+  border-radius: 50%;
+  line-height: 1;
+}
+
+.search-clear:hover {
+  color: var(--text);
+  background: var(--border-soft);
+}
+
 .doc-list {
   list-style: none;
   padding: 0;
@@ -871,144 +927,103 @@ button.pill:hover {
   font-family: 'Georgia', 'Times New Roman', serif;
   font-size: 14px;
   line-height: 1.6;
-  padding: 8px 10px;
-  border: 1px solid var(--input-border);
-  border-radius: var(--radius);
-  resize: vertical;
-}
-
-.merge-summary-bar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin: 10px 0;
-}
-
-.merge-stat {
-  display: inline-flex;
-  align-items: center;
-  padding: 3px 10px;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-}
-
-.merge-stat-auto-main {
-  background: #f0f0ec;
-  color: #555;
-}
-
-.merge-stat-auto-branch {
-  background: #d4edda;
-  color: #155724;
-}
-
-.merge-stat-conflict {
-  background: #fff3cd;
-  color: #856404;
-}
-
-.merge-stat-equal {
-  background: #f0f0ec;
-  color: #888;
 }
 
 /* ─── Login Page ─────────────────────────────────────────────────────────── */
 
-.login-section {
-  display: flex;
-  justify-content: center;
-  padding: 40px 0;
-}
+  .login-section {
+    display: flex;
+    justify-content: center;
+    padding: 40px 0;
+  }
 
-.login-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: 32px;
-  width: 100%;
-  max-width: 380px;
-}
+  .login-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 32px;
+    width: 100%;
+    max-width: 380px;
+  }
 
-.login-card h2 {
-  margin: 0 0 4px 0;
-  font-size: 20px;
-}
+  .login-card h2 {
+    margin: 0 0 4px 0;
+    font-size: 20px;
+  }
 
-.login-subtitle {
-  color: var(--text-muted);
-  font-size: 14px;
-  margin: 0 0 20px 0;
-}
+  .login-subtitle {
+    color: var(--text-muted);
+    font-size: 14px;
+    margin: 0 0 20px 0;
+  }
 
-.login-card form label {
-  display: block;
-  margin-bottom: 14px;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text-soft);
-}
+  .login-card form label {
+    display: block;
+    margin-bottom: 14px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-soft);
+  }
 
-.login-card form input {
-  margin-top: 4px;
-}
+  .login-card form input {
+    margin-top: 4px;
+  }
 
-.login-card form button[type="submit"] {
-  width: 100%;
-  margin-top: 8px;
-  padding: 10px;
-  font-size: 15px;
-}
+  .login-card form button[type="submit"] {
+    width: 100%;
+    margin-top: 8px;
+    padding: 10px;
+    font-size: 15px;
+  }
 
-.login-toggle {
-  text-align: center;
-  margin-top: 16px;
-  font-size: 13px;
-  color: var(--text-muted);
-}
+  .login-toggle {
+    text-align: center;
+    margin-top: 16px;
+    font-size: 13px;
+    color: var(--text-muted);
+  }
 
-/* ─── Password Rules Checklist ───────────────────────────────────────────── */
+  /* ─── Password Rules Checklist ───────────────────────────────────────────── */
 
-.pw-rules {
-  list-style: none;
-  margin: 0 0 12px 0;
-  padding: 10px 14px;
-  background: #fafaf8;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-}
+  .pw-rules {
+    list-style: none;
+    margin: 0 0 12px 0;
+    padding: 10px 14px;
+    background: #fafaf8;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+  }
 
-.pw-rule {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 4px 0;
-  font-size: 13px;
-  color: #9a3a3a;
-  transition: color 0.25s ease;
-}
+  .pw-rule {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 0;
+    font-size: 13px;
+    color: #9a3a3a;
+    transition: color 0.25s ease;
+  }
 
-.pw-rule.passed {
-  color: #1a7a34;
-}
+  .pw-rule.passed {
+    color: #1a7a34;
+  }
 
-.pw-rule-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  font-size: 12px;
-  font-weight: 700;
-  flex-shrink: 0;
-  transition: background 0.25s ease, color 0.25s ease;
-  background: #fce4e4;
-  color: #b33;
-}
+  .pw-rule-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    font-size: 12px;
+    font-weight: 700;
+    flex-shrink: 0;
+    transition: background 0.25s ease, color 0.25s ease;
+    background: #fce4e4;
+    color: #b33;
+  }
 
-.pw-rule.passed .pw-rule-icon {
-  background: #d4edda;
-  color: #155724;
-}
+  .pw-rule.passed .pw-rule-icon {
+    background: #d4edda;
+    color: #155724;
+  }

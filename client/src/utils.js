@@ -10,3 +10,12 @@ export function slugify(title) {
     .replace(/[\s_]+/g, '-')    // spaces/underscores to hyphens
     .replace(/^-+|-+$/g, '')    // trim leading/trailing hyphens
 }
+
+export function escapeHtml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}

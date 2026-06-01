@@ -8,12 +8,11 @@ Last updated: 2026-05-22
 
 ### Authentication — 50 pts
 
-The `User` model exists in `models.py` with `email` and `hashed_password` columns, but nothing is wired up. Still needed:
-- Login and register routes
-- JWT or session-based token handling
+Fully implemented and wired up end-to-end. Features include:
+- Login, register, and logout routes
 - Route protection on the backend
-- Auth UI on the frontend
-
+- Auth UI on the frontend with live password requirement validation
+- Passwords are securely hashed using bcrypt
 ### Dynamic Data Display — 50 pts
 
 The frontend fetches and renders live data from the backend on every page. `DocumentDashboard` lists documents, `Editor` loads branch content, `CommitHistorySidebar` shows commit history, `BranchPicker` populates from the API, and `DiffViewer` renders a visual line-by-line comparison.
@@ -58,14 +57,15 @@ Active remote tracking, feature branches (`feature/custom-diff-engine`), consist
 
 ### Three Distinct Features — 150 pts
 
-Features implemented so far:
+Features successfully implemented:
 1. **Custom diff engine** (`diff_engine.py`) — Myers diff algorithm written from scratch
 2. **Visual branch diff viewer** — word-level diff with `?w=1` whitespace toggle
 3. **Commit history sidebar** — `CommitHistorySidebar.jsx` shows per-branch history
 4. **Rich text editor** — `RichEditor.jsx` (TipTap-based WYSIWYG)
-5. **Merge with conflict detection** — `merge.py` detects divergence since branch point
+5. **Merge with conflict detection** — fully implemented safe-merge logic with 3-way conflict detection algorithm (`merge_engine.py`) and UI resolution (`ConflictResolver.jsx`)
+6. **Formal Export** — "Download PDF" functionality to generate a print-ready document
 
-We likely satisfy the "three distinct features" requirement already. The goal is to make sure each one is clearly demonstrable during the final presentation.
+We have implemented 6 distinct features, which more than satisfies the "three distinct features" requirement. All are ready for demonstration.
 
 ---
 
@@ -121,10 +121,10 @@ The README has no diagrams. We need at least two different diagram types, consis
 | Git version control | 100 | Done |
 | Code readability | 100 | Done |
 | Visually pleasing | 50 | In progress |
-| Three distinct features | 150 | In progress |
+| Three distinct features | 150 | Done |
 | README (run instructions + diagrams) | 50 | In progress |
 | 2+ Playwright E2E tests | 100 | Not started |
-| Authentication | 50 | Not started |
+| Authentication | 50 | Done |
 | Search | 50 | Not started |
 | Architecture diagrams (2+) in README | 100 | Not started |
 | **Total** | **850** | |
@@ -134,7 +134,6 @@ The README has no diagrams. We need at least two different diagram types, consis
 ## Action Items
 
 1. Set up Playwright and write at least 2 E2E tests
-2. Implement authentication (login/register + protected routes)
-3. Add document title search to the dashboard
-4. Add architecture diagrams to the README
-5. Complete README with local setup instructions
+2. Add document title search to the dashboard
+3. Add architecture diagrams to the README
+4. Complete README with local setup instructions

@@ -2,7 +2,7 @@ from flask import Blueprint, jsonify, request
 
 from models import db, Document, Branch, Commit
 from routes.auth import get_current_user
-from utils import make_diff, reconstruct_branch_content
+from utils import make_diff, reconstruct_branch_content, extract_plain_text
 
 documents_bp = Blueprint("documents", __name__)
 
@@ -89,7 +89,13 @@ def list_documents():
     if user is None:
         return jsonify({"error": "authentication required"}), 401
 
-    docs = Document.query.filter_by(owner_id=user.id).order_by(Document.id).all()
+    query = Document.query.filter_by(owner_id=user.id)
+
+    search = request.args.get("q", "").strip()
+    if search:
+        query = query.filter(Document.title.ilike(f"%{search}%"))
+
+    docs = query.order_by(Document.id).all()
     return jsonify([document_to_dict(d) for d in docs])
 
 
@@ -175,6 +181,20 @@ def update_document(doc_id):
 
     db.session.commit()
     return jsonify(document_to_dict(doc))
+
+
+@documents_bp.route("/documents/<int:doc_id>/export", methods=["GET"])
+def export_document(doc_id):
+    doc = Document.query.get(doc_id)
+    if doc is None:
+        return jsonify({"error": "document not found"}), 404
+
+    main_branch = Branch.query.filter_by(document_id=doc.id, is_main=True).first()
+    if main_branch is None:
+        return jsonify({"error": "main branch not found"}), 500
+
+    raw = reconstruct_branch_content(main_branch)
+    return jsonify({"title": doc.title, "content": extract_plain_text(raw)})
 
 
 @documents_bp.route("/documents/<int:doc_id>", methods=["DELETE"])

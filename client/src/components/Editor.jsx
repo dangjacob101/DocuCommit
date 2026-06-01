@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { getDocument, listBranches, mergeBranch } from '../api.js'
-import { getDocument, listBranches, updateDocument } from '../api.js'
+import { getDocument, listBranches, mergeBranch, updateDocument, exportDocument } from '../api.js'
 import { slugify } from '../utils.js'
 import RichEditor from './RichEditor.jsx'
 import BranchPicker from './BranchPicker.jsx'
@@ -77,6 +76,40 @@ export default function Editor() {
     navigate(`/${slugify(doc.title)}/${docId}/branches/${slugify(newBranch.name)}`)
   }
 
+  async function handleExport() {
+    try {
+      const data = await exportDocument(parseInt(docId))
+      const paragraphs = data.content
+        .split('\n')
+        .filter(line => line.trim())
+        .map(line => `<p>${escapeHtml(line)}</p>`)
+        .join('\n')
+      const html = `<!doctype html>
+<html><head><title>${escapeHtml(data.title)}</title>
+<style>
+  body { font-family: Georgia, "Times New Roman", serif; max-width: 6.5in; margin: 1in auto; line-height: 1.55; color: #111; }
+  h1 { font-size: 18pt; text-align: center; margin: 0 0 0.75in; }
+  p { margin: 0 0 0.6em; text-align: justify; }
+  @media print { body { margin: 0; padding: 0.5in; } }
+</style></head>
+<body>
+  <h1>${escapeHtml(data.title)}</h1>
+  ${paragraphs}
+  <script>window.onload = function () { window.print() }</script>
+</body></html>`
+      const win = window.open('', '_blank')
+      if (!win) {
+        setError('Pop-up blocked. Allow pop-ups to export.')
+        return
+      }
+      win.document.open()
+      win.document.write(html)
+      win.document.close()
+    } catch (e) {
+      setError(e.message)
+    }
+  }
+
   async function handleSaveTitle() {
     if (!editTitleVal.trim() || editTitleVal === doc.title) {
       setIsEditingTitle(false)
@@ -142,6 +175,11 @@ export default function Editor() {
               }}
             >
               Merge to Main
+            </button>
+          )}
+          {branch.is_main && (
+            <button onClick={handleExport} disabled={dirty} title={dirty ? 'Commit your changes first' : ''}>
+              Download PDF
             </button>
           )}
           <button onClick={() => setShowCommit(true)} disabled={!dirty}>

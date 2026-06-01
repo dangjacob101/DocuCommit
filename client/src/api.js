@@ -35,8 +35,9 @@ export function getMe() {
 
 // ── Documents ──
 
-export function listDocuments() {
-  return send('GET', '/api/documents')
+export function listDocuments(searchQuery = '') {
+  const qs = searchQuery ? `?q=${encodeURIComponent(searchQuery)}` : ''
+  return send('GET', `/api/documents${qs}`)
 }
 
 export function getDocument(id) {
@@ -91,5 +92,9 @@ export function mergeBranch(branchId, resolutions) {
 
 export function getMergePreview(branchId) {
   return send('GET', `/api/branches/${branchId}/merge/preview`)
+}
+
+export function exportDocument(documentId) {
+  return send('GET', `/api/documents/${documentId}/export`)
 }
 
