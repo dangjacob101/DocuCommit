@@ -78,6 +78,35 @@ function ConflictHunk({ hunk, resolution, editing, onPick, onStartEdit, onEditCh
   )
 }
 
+function MergeSummaryBar({ summary }) {
+  if (!summary) return null
+
+  return (
+    <div className="merge-summary-bar">
+      {summary.auto_main_hunks > 0 && (
+        <span className="merge-stat merge-stat-auto-main">
+          {summary.auto_main_hunks} auto-main
+        </span>
+      )}
+      {summary.auto_branch_hunks > 0 && (
+        <span className="merge-stat merge-stat-auto-branch">
+          {summary.auto_branch_hunks} auto-branch
+        </span>
+      )}
+      {summary.conflict_hunks > 0 && (
+        <span className="merge-stat merge-stat-conflict">
+          {summary.conflict_hunks} conflict{summary.conflict_hunks !== 1 ? 's' : ''}
+        </span>
+      )}
+      {summary.equal_hunks > 0 && (
+        <span className="merge-stat merge-stat-equal">
+          {summary.equal_hunks} unchanged
+        </span>
+      )}
+    </div>
+  )
+}
+
 export default function ConflictResolver() {
   const { docSlug, docId, branchName } = useParams()
   const navigate = useNavigate()
@@ -90,7 +119,6 @@ export default function ConflictResolver() {
   const [merging, setMerging] = useState(false)
 
   useEffect(() => {
-    // Look up the branch ID from the branch name, then fetch the merge preview
     listBranches(parseInt(docId))
       .then((branches) => {
         const branch = branches.find(b => slugify(b.name) === branchName)
@@ -155,13 +183,11 @@ export default function ConflictResolver() {
     setError(null)
 
     try {
-      // Build resolutions for conflict hunks only
       const conflictResolutions = {}
       for (const h of conflicts) {
         conflictResolutions[h.id] = resolutions[h.id]
       }
       await mergeBranch(branchId, conflictResolutions)
-      // Navigate to Main branch on success
       navigate(`/${docSlug}/${docId}/branches/main`)
     } catch (e) {
       setError(e.message)
@@ -180,6 +206,8 @@ export default function ConflictResolver() {
           <span className="diff-branch-name diff-branch-main">{preview.main_name}</span>
         </h2>
       </div>
+
+      <MergeSummaryBar summary={preview.summary} />
 
       <div className="row">
         <span className="muted">

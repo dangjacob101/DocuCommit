@@ -5,11 +5,10 @@ import os
 
 sys.path.insert(0, os.path.dirname(__file__))
 
-from merge_engine import three_way_merge, apply_resolutions
+from merge_engine import three_way_merge, apply_resolutions, validate_linear_progression, merge_summary
 
 
 def test_both_unchanged():
-    """When neither side changes the base, all hunks are equal."""
     base = "line one\nline two\nline three\n"
     hunks = three_way_merge(base, base, base)
     kinds = [h["kind"] for h in hunks]
@@ -18,7 +17,6 @@ def test_both_unchanged():
 
 
 def test_only_main_changed():
-    """When only Main changes a line, hunk is auto-main."""
     base = "line one\nline two\nline three\n"
     main = "line one\nline TWO\nline three\n"
     hunks = three_way_merge(base, main, base)
@@ -29,7 +27,6 @@ def test_only_main_changed():
 
 
 def test_only_branch_changed():
-    """When only the branch changes a line, hunk is auto-branch."""
     base = "line one\nline two\nline three\n"
     branch = "line one\nline BRANCH\nline three\n"
     hunks = three_way_merge(base, base, branch)
@@ -40,7 +37,6 @@ def test_only_branch_changed():
 
 
 def test_non_overlapping_changes():
-    """When both sides change different lines, no conflicts."""
     base = "line one\nline two\nline three\nline four\nline five\n"
     main = "line one\nMAIN edit\nline three\nline four\nline five\n"
     branch = "line one\nline two\nline three\nline four\nBRANCH edit\n"
@@ -49,13 +45,12 @@ def test_non_overlapping_changes():
     assert len(conflicts) == 0, f"Expected no conflicts, got {len(conflicts)}: {conflicts}"
     auto_main = [h for h in hunks if h["kind"] == "auto-main"]
     auto_branch = [h for h in hunks if h["kind"] == "auto-branch"]
-    assert len(auto_main) >= 1, "Expected at least one auto-main hunk"
-    assert len(auto_branch) >= 1, "Expected at least one auto-branch hunk"
+    assert len(auto_main) >= 1
+    assert len(auto_branch) >= 1
     print("PASS: non_overlapping_changes")
 
 
 def test_overlapping_changes_conflict():
-    """When both sides change the same line differently, it's a conflict."""
     base = "line one\nline two\nline three\n"
     main = "line one\nMAIN version\nline three\n"
     branch = "line one\nBRANCH version\nline three\n"
@@ -63,13 +58,12 @@ def test_overlapping_changes_conflict():
     conflicts = [h for h in hunks if h["kind"] == "conflict"]
     assert len(conflicts) >= 1, f"Expected conflict, got {[h['kind'] for h in hunks]}"
     c = conflicts[0]
-    assert "MAIN" in c["main"], f"Expected MAIN in main side, got {c['main']}"
-    assert "BRANCH" in c["branch"], f"Expected BRANCH in branch side, got {c['branch']}"
+    assert "MAIN" in c["main"]
+    assert "BRANCH" in c["branch"]
     print("PASS: overlapping_changes_conflict")
 
 
 def test_same_change_both_sides():
-    """When both sides make identical changes, it auto-resolves as equal."""
     base = "line one\nline two\nline three\n"
     same = "line one\nline CHANGED\nline three\n"
     hunks = three_way_merge(base, same, same)
@@ -79,7 +73,6 @@ def test_same_change_both_sides():
 
 
 def test_apply_resolutions_pick_main():
-    """Resolving a conflict by picking Main."""
     hunks = [
         {"id": "h0", "kind": "equal", "text": "start"},
         {"id": "h1", "kind": "conflict", "main": "Main text", "branch": "Branch text"},
@@ -92,7 +85,6 @@ def test_apply_resolutions_pick_main():
 
 
 def test_apply_resolutions_pick_branch():
-    """Resolving a conflict by picking branch."""
     hunks = [
         {"id": "h0", "kind": "equal", "text": "start"},
         {"id": "h1", "kind": "conflict", "main": "Main text", "branch": "Branch text"},
@@ -105,7 +97,6 @@ def test_apply_resolutions_pick_branch():
 
 
 def test_apply_resolutions_custom():
-    """Resolving a conflict with custom text."""
     hunks = [
         {"id": "h0", "kind": "equal", "text": "start"},
         {"id": "h1", "kind": "conflict", "main": "Main text", "branch": "Branch text"},
@@ -117,7 +108,6 @@ def test_apply_resolutions_custom():
 
 
 def test_apply_resolutions_missing_raises():
-    """Missing resolution for a conflict raises ValueError."""
     hunks = [
         {"id": "h0", "kind": "conflict", "main": "A", "branch": "B"},
     ]
@@ -130,7 +120,6 @@ def test_apply_resolutions_missing_raises():
 
 
 def test_auto_hunks_no_resolution_needed():
-    """Auto-main and auto-branch hunks don't need resolutions."""
     hunks = [
         {"id": "h0", "kind": "equal", "text": "start"},
         {"id": "h1", "kind": "auto-main", "main": "Main only"},
@@ -144,12 +133,10 @@ def test_auto_hunks_no_resolution_needed():
 
 
 def test_empty_base():
-    """Merging when the base is empty."""
     base = ""
     main = "Main added this\n"
     branch = "Branch added this\n"
     hunks = three_way_merge(base, main, branch)
-    # Both added different content — should be a conflict
     kinds = [h["kind"] for h in hunks]
     assert "conflict" in kinds or "auto-main" in kinds or "auto-branch" in kinds, \
         f"Expected changes, got {kinds}"
@@ -157,15 +144,11 @@ def test_empty_base():
 
 
 def test_full_roundtrip():
-    """End-to-end: diverged edits → preview → resolve → correct merged text."""
     base = "The cat sat on the mat.\nIt was a sunny day.\nThe end.\n"
     main = "The cat sat on the mat.\nIt was a rainy day.\nThe end.\n"
     branch = "The dog sat on the mat.\nIt was a sunny day.\nThe end.\n"
 
     hunks = three_way_merge(base, main, branch)
-
-    # Should have auto-main (rainy), auto-branch (dog), and no conflicts
-    # because the changes are on different lines
     conflicts = [h for h in hunks if h["kind"] == "conflict"]
     assert len(conflicts) == 0, f"Expected no conflicts for non-overlapping edits, got {conflicts}"
 
@@ -173,6 +156,66 @@ def test_full_roundtrip():
     assert "dog" in merged, f"Expected 'dog' in merged text: {merged}"
     assert "rainy" in merged, f"Expected 'rainy' in merged text: {merged}"
     print("PASS: full_roundtrip")
+
+
+def test_validate_linear_no_divergence():
+    base = "hello\nworld\n"
+    branch = "hello\nworld\nnew line\n"
+    result = validate_linear_progression(base, base, branch)
+    assert result["is_linear"] is True
+    assert result["main_diverged"] is False
+    assert result["auto_resolvable"] is True
+    print("PASS: validate_linear_no_divergence")
+
+
+def test_validate_linear_diverged_no_conflicts():
+    base = "A\nB\nC\nD\nE\n"
+    main = "A\nB-main\nC\nD\nE\n"
+    branch = "A\nB\nC\nD\nE-branch\n"
+    result = validate_linear_progression(base, main, branch)
+    assert result["is_linear"] is False
+    assert result["main_diverged"] is True
+    assert result["has_conflicts"] is False
+    assert result["auto_resolvable"] is True
+    print("PASS: validate_linear_diverged_no_conflicts")
+
+
+def test_validate_linear_diverged_with_conflicts():
+    base = "A\nB\nC\n"
+    main = "A\nB-main\nC\n"
+    branch = "A\nB-branch\nC\n"
+    result = validate_linear_progression(base, main, branch)
+    assert result["is_linear"] is False
+    assert result["has_conflicts"] is True
+    assert result["conflict_count"] >= 1
+    assert result["auto_resolvable"] is False
+    print("PASS: validate_linear_diverged_with_conflicts")
+
+
+def test_merge_summary_counts():
+    base = "A\nB\nC\nD\nE\n"
+    main = "A\nB-main\nC\nD\nE\n"
+    branch = "A\nB\nC\nD\nE-branch\n"
+    summary = merge_summary(base, main, branch)
+    assert summary["total_hunks"] > 0
+    assert summary["auto_main_hunks"] >= 1
+    assert summary["auto_branch_hunks"] >= 1
+    assert summary["conflict_hunks"] == 0
+    assert summary["is_clean"] is True
+    print("PASS: merge_summary_counts")
+
+
+def test_reconstruct_span_preserves_unchanged_lines():
+    base = "A\nB\nC\nD\nE\n"
+    main = "A\nB-main\nC\nD-main\nE\n"
+    branch = "A\nB-branch\nC\nD-branch\nE\n"
+    hunks = three_way_merge(base, main, branch)
+    conflicts = [h for h in hunks if h["kind"] == "conflict"]
+    for c in conflicts:
+        if "C" in c.get("main", "") or "C" in c.get("branch", ""):
+            assert "C" in c["main"] and "C" in c["branch"], \
+                "Unchanged line C should be preserved in conflict span"
+    print("PASS: reconstruct_span_preserves_unchanged_lines")
 
 
 if __name__ == "__main__":
@@ -189,4 +232,10 @@ if __name__ == "__main__":
     test_auto_hunks_no_resolution_needed()
     test_empty_base()
     test_full_roundtrip()
+    test_validate_linear_no_divergence()
+    test_validate_linear_diverged_no_conflicts()
+    test_validate_linear_diverged_with_conflicts()
+    test_merge_summary_counts()
+    test_reconstruct_span_preserves_unchanged_lines()
     print("\nAll merge engine tests passed!")
+
