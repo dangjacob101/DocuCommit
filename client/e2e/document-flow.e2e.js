@@ -10,17 +10,19 @@ function unique(prefix) {
 }
 
 async function registerNewUser(page) {
-  const username = unique('e2e')
+  const email = `${unique('e2e')}@example.com`
   await page.goto('/')
   // flip from the default Sign In view to the Create Account view
   await page.getByRole('button', { name: 'Sign Up' }).click()
   await expect(page.getByRole('heading', { name: 'Create Account' })).toBeVisible()
-  await page.locator('#login-username').fill(username)
+  await page.locator('#login-email').fill(email)
+  await page.locator('#login-first-name').fill('Test')
+  await page.locator('#login-last-name').fill('User')
   await page.locator('#login-password').fill(PASSWORD)
   await page.locator('#login-submit').click()
   // a successful register logs us in and drops us on the dashboard
   await expect(page.getByRole('heading', { name: 'Documents' })).toBeVisible()
-  return username
+  return email
 }
 
 async function createDocument(page, title, content) {

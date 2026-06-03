@@ -9,7 +9,7 @@ test('app loads and shows the login page', async ({ page }) => {
 
   // an unauthenticated visitor lands on the sign-in form
   await expect(page.getByRole('heading', { name: 'Sign In' })).toBeVisible()
-  await expect(page.locator('#login-username')).toBeVisible()
+  await expect(page.locator('#login-email')).toBeVisible()
   await expect(page.locator('#login-password')).toBeVisible()
   await expect(page.locator('#login-submit')).toBeVisible()
 })

@@ -32,7 +32,12 @@ def authenticate(client):
     """register a user so the client has a session. creating docs needs login."""
     r = client.post(
         "/api/auth/register",
-        json={"username": "tester", "password": "TestPass1!"},
+        json={
+            "email": "tester@example.com",
+            "first_name": "Test",
+            "last_name": "User",
+            "password": "TestPass1!",
+        },
     )
     assert r.status_code == 201, f"auth setup failed: {r.get_json()}"
 
