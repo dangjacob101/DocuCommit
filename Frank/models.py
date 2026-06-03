@@ -14,8 +14,8 @@ class User(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(255), unique=True, nullable=False)
-    first_name = db.Column(db.String(100), nullable=False)
-    last_name = db.Column(db.String(100), nullable=False)
+    first_name = db.Column(db.String(100), nullable=True)
+    last_name = db.Column(db.String(100), nullable=True)
     hashed_password = db.Column(db.String(255), nullable=False)
     created_at = db.Column(db.DateTime, default=now_utc)
 
@@ -88,3 +88,39 @@ def create_missing_indexes():
     for table in (Branch.__table__, Commit.__table__):
         for index in table.indexes:
             index.create(bind=db.engine, checkfirst=True)
+
+
+def migrate_users_schema():
+    """Patch legacy users tables that predate the email/name auth refactor.
+
+    db.create_all() never alters an existing table, so a pre-existing
+    documents.db keeps its old 'username' column and never gains the new
+    email/first_name/last_name ones. We add what's missing and best-effort
+    drop the orphan username column (works on SQLite >= 3.35).
+    """
+    from sqlalchemy import inspect
+
+    inspector = inspect(db.engine)
+    if "users" not in inspector.get_table_names():
+        return
+
+    columns = {col["name"] for col in inspector.get_columns("users")}
+    adds = []
+    if "email" not in columns:
+        adds.append("ALTER TABLE users ADD COLUMN email VARCHAR(255)")
+    if "first_name" not in columns:
+        adds.append("ALTER TABLE users ADD COLUMN first_name VARCHAR(100)")
+    if "last_name" not in columns:
+        adds.append("ALTER TABLE users ADD COLUMN last_name VARCHAR(100)")
+
+    if not adds and "username" not in columns:
+        return
+
+    with db.engine.begin() as conn:
+        for stmt in adds:
+            conn.exec_driver_sql(stmt)
+        if "username" in columns:
+            try:
+                conn.exec_driver_sql("ALTER TABLE users DROP COLUMN username")
+            except Exception:
+                pass
