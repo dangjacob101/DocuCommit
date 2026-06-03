@@ -16,7 +16,8 @@ class User(db.Model):
     email = db.Column(db.String(255), unique=True, nullable=False)
     first_name = db.Column(db.String(100), nullable=True)
     last_name = db.Column(db.String(100), nullable=True)
-    hashed_password = db.Column(db.String(255), nullable=False)
+    hashed_password = db.Column(db.String(255), nullable=True)  # nullable for OAuth-only users
+    google_id = db.Column(db.String(255), unique=True, nullable=True)
     profile_picture = db.Column(db.String(255), nullable=True)
     created_at = db.Column(db.DateTime, default=now_utc)
 
@@ -179,6 +180,8 @@ def migrate_users_schema():
         adds.append("ALTER TABLE users ADD COLUMN last_name VARCHAR(100)")
     if "profile_picture" not in columns:
         adds.append("ALTER TABLE users ADD COLUMN profile_picture VARCHAR(255)")
+    if "google_id" not in columns:
+        adds.append("ALTER TABLE users ADD COLUMN google_id VARCHAR(255)")
 
     if not adds and "username" not in columns:
         return
