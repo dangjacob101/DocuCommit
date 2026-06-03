@@ -33,6 +33,22 @@ export function getMe() {
   return send('GET', '/api/auth/me')
 }
 
+export async function uploadProfilePicture(file) {
+  const formData = new FormData()
+  formData.append('file', file)
+  const res = await fetch('/api/auth/profile-picture', {
+    method: 'POST',
+    credentials: 'include',
+    body: formData,
+  })
+  if (!res.ok) {
+    let payload
+    try { payload = await res.json() } catch { payload = {} }
+    throw new Error(payload.error || `Upload failed (${res.status})`)
+  }
+  return res.json()
+}
+
 // ── Documents ──
 
 export function listDocuments(searchQuery = '') {

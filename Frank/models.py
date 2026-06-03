@@ -17,6 +17,7 @@ class User(db.Model):
     first_name = db.Column(db.String(100), nullable=True)
     last_name = db.Column(db.String(100), nullable=True)
     hashed_password = db.Column(db.String(255), nullable=False)
+    profile_picture = db.Column(db.String(255), nullable=True)
     created_at = db.Column(db.DateTime, default=now_utc)
 
     documents = db.relationship("Document", back_populates="owner", cascade="all, delete-orphan")
@@ -112,6 +113,8 @@ def migrate_users_schema():
         adds.append("ALTER TABLE users ADD COLUMN first_name VARCHAR(100)")
     if "last_name" not in columns:
         adds.append("ALTER TABLE users ADD COLUMN last_name VARCHAR(100)")
+    if "profile_picture" not in columns:
+        adds.append("ALTER TABLE users ADD COLUMN profile_picture VARCHAR(255)")
 
     if not adds and "username" not in columns:
         return
