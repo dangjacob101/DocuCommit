@@ -202,11 +202,10 @@ export default function Editor() {
 
       <div className="editor-layout">
         <div className="editor-main">
-          <textarea
-            className="editor"
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            rows={24}
+          <RichEditor
+            content={content}
+            onUpdate={setContent}
+            placeholder="Start writing…"
           />
           {!dirty && <p className="muted">All changes committed.</p>}
         </div>

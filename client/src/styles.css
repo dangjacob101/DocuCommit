@@ -637,6 +637,31 @@ label textarea {
   flex-shrink: 0;
 }
 
+/* ── Font Size Select ── */
+
+.toolbar-select {
+  padding: 4px 6px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: none;
+  font-size: 12px;
+  font-weight: 500;
+  color: #444;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.toolbar-select:hover {
+  background: #eaeae6;
+  border-color: #d4d4cc;
+}
+
+.toolbar-select:focus {
+  outline: none;
+  border-color: #c8c8c0;
+  background: #e0e0da;
+}
+
 /* TipTap editor content area */
 
 .rich-editor-content .tiptap {
@@ -644,7 +669,7 @@ label textarea {
   padding: 20px 24px;
   outline: none;
   font-family: 'Georgia', 'Times New Roman', serif;
-  font-size: 15px;
+  font-size: 12px;
   line-height: 1.7;
   color: #1a1a1a;
 }
