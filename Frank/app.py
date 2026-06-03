@@ -37,8 +37,8 @@ def create_app():
         migrate_users_schema()
         db.create_all()
         create_missing_indexes()
-        _seed_default_user()
         migrate_documents_project_id()
+        _seed_default_user()
 
     return app
 
