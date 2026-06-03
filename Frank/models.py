@@ -21,6 +21,23 @@ class User(db.Model):
     created_at = db.Column(db.DateTime, default=now_utc)
 
     documents = db.relationship("Document", back_populates="owner", cascade="all, delete-orphan")
+    projects = db.relationship("Project", back_populates="owner", cascade="all, delete-orphan")
+
+
+class Project(db.Model):
+    __tablename__ = "projects"
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(255), nullable=False)
+    owner_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    created_at = db.Column(db.DateTime, default=now_utc)
+
+    owner = db.relationship("User", back_populates="projects")
+    documents = db.relationship(
+        "Document", back_populates="project", cascade="all, delete-orphan"
+    )
+
+    __table_args__ = (db.Index("ix_projects_owner_id", "owner_id"),)
 
 
 class Document(db.Model):
@@ -29,9 +46,11 @@ class Document(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(500), nullable=False)
     owner_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=True)
+    project_id = db.Column(db.Integer, db.ForeignKey("projects.id", ondelete="CASCADE"), nullable=True)
     created_at = db.Column(db.DateTime, default=now_utc)
 
     owner = db.relationship("User", back_populates="documents")
+    project = db.relationship("Project", back_populates="documents")
     branches = db.relationship(
         "Branch", back_populates="document", cascade="all, delete-orphan"
     )
@@ -86,9 +105,54 @@ class Commit(db.Model):
 
 
 def create_missing_indexes():
-    for table in (Branch.__table__, Commit.__table__):
+    for table in (Branch.__table__, Commit.__table__, Project.__table__):
         for index in table.indexes:
             index.create(bind=db.engine, checkfirst=True)
+
+
+def migrate_documents_project_id():
+    from sqlalchemy import inspect
+
+    inspector = inspect(db.engine)
+    if "documents" not in inspector.get_table_names():
+        return
+
+    columns = {col["name"] for col in inspector.get_columns("documents")}
+    if "project_id" not in columns:
+        with db.engine.begin() as conn:
+            conn.exec_driver_sql(
+                "ALTER TABLE documents ADD COLUMN project_id INTEGER"
+            )
+
+    orphans = Document.query.filter(
+        Document.owner_id.isnot(None),
+        Document.project_id.is_(None),
+    ).all()
+    if not orphans:
+        return
+
+    by_owner = {}
+    for doc in orphans:
+        by_owner.setdefault(doc.owner_id, []).append(doc)
+
+    for owner_id, docs in by_owner.items():
+        default_proj = (
+            Project.query.filter_by(owner_id=owner_id).order_by(Project.id).first()
+        )
+        if default_proj is None:
+            owner = User.query.get(owner_id)
+            name = (
+                f"{owner.first_name}'s Workspace"
+                if owner and owner.first_name
+                else "My Workspace"
+            )
+            default_proj = Project(name=name, owner_id=owner_id)
+            db.session.add(default_proj)
+            db.session.flush()
+        for doc in docs:
+            doc.project_id = default_proj.id
+
+    db.session.commit()
 
 
 def migrate_users_schema():
