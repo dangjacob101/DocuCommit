@@ -47,6 +47,20 @@ Active remote tracking, feature branches (`feature/custom-diff-engine`), consist
 
 ---
 
+### 2+ Automated End-to-End Tests — 100 pts
+
+We have implemented fully automated E2E testing using Playwright. Two full user flows are tested:
+- `client/e2e/smoke.e2e.js`: Basic app booting, login/register functionality.
+- `client/e2e/document-flow.e2e.js`: Creates a document, creates a branch, makes edits, commits, and tests the visual diff.
+
+---
+
+### Search — 50 pts
+
+Fully implemented title search bar on `DocumentDashboard` backed by a `?q=` filter on `GET /api/documents`.
+
+---
+
 ## In Progress
 
 ### Visually Pleasing & Easy to Navigate — 50 pts
@@ -63,9 +77,10 @@ Features successfully implemented:
 3. **Commit history sidebar** — `CommitHistorySidebar.jsx` shows per-branch history
 4. **Rich text editor** — `RichEditor.jsx` (TipTap-based WYSIWYG)
 5. **Merge with conflict detection** — fully implemented safe-merge logic with 3-way conflict detection algorithm (`merge_engine.py`) and UI resolution (`ConflictResolver.jsx`)
-6. **Formal Export** — "Download PDF" functionality to generate a print-ready document
+6. **Formal Export** — "Download DOCX" functionality to generate a Word document (`docx_generator.py`)
+7. **Projects** — Group documents by user's workspace/projects
 
-We have implemented 6 distinct features, which more than satisfies the "three distinct features" requirement. All are ready for demonstration.
+We have implemented 7 distinct features, which more than satisfies the "three distinct features" requirement. All are ready for demonstration.
 
 ---
 
@@ -76,29 +91,7 @@ Currently covers project description, user stories, and milestones. Still missin
 
 ---
 
-### 2+ Automated End-to-End Tests — 100 pts
-
-Current test files are unit/component tests and do not satisfy the E2E requirement:
-- `Frank/test_diff_engine.py` — backend unit tests
-- `client/src/test/api.test.js` — mocked API unit tests
-- `client/src/test/DocumentDashboard.test.jsx` — component tests with mocked API
-- `client/src/test/NewDocumentForm.test.jsx` — component tests with mocked API
-
-The course requires Playwright. We need at least 2 tests that boot the real app and drive a browser through a complete user flow. Suggested flows:
-- Create a document and verify it appears on the dashboard
-- Open a document, create a branch, write content, commit, and view the diff
-
-Reference: https://tobiasduerschmid.github.io/SEBook/tools/playwright-tutorial
-
----
-
 ## Not Started
-
----
-
-### Search — 50 pts
-
-No search functionality exists. The simplest path is a title search bar on `DocumentDashboard` backed by a `?q=` filter on `GET /api/documents`.
 
 ---
 
@@ -123,9 +116,9 @@ The README has no diagrams. We need at least two different diagram types, consis
 | Visually pleasing | 50 | In progress |
 | Three distinct features | 150 | Done |
 | README (run instructions + diagrams) | 50 | In progress |
-| 2+ Playwright E2E tests | 100 | Not started |
+| 2+ Playwright E2E tests | 100 | Done |
 | Authentication | 50 | Done |
-| Search | 50 | Not started |
+| Search | 50 | Done |
 | Architecture diagrams (2+) in README | 100 | Not started |
 | **Total** | **850** | |
 
@@ -133,7 +126,5 @@ The README has no diagrams. We need at least two different diagram types, consis
 
 ## Action Items
 
-1. Set up Playwright and write at least 2 E2E tests
-2. Add document title search to the dashboard
-3. Add architecture diagrams to the README
-4. Complete README with local setup instructions
+1. Add architecture diagrams to the README
+2. Complete README with local setup instructions
