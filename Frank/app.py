@@ -3,7 +3,7 @@ from flask import Flask
 from flask_cors import CORS
 
 from config import Config
-from models import db, User, Document, create_missing_indexes
+from models import db, User, Document, create_missing_indexes, migrate_users_schema
 
 
 def create_app():
@@ -24,6 +24,7 @@ def create_app():
     app.register_blueprint(auth_bp, url_prefix='/api')
 
     with app.app_context():
+        migrate_users_schema()
         db.create_all()
         create_missing_indexes()
         _seed_default_user()
