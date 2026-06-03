@@ -1,4 +1,4 @@
-# test_branch_isolation.py — week 5 deliverable
+# test_branch_isolation.py - week 5 deliverable
 #
 # proves that edits made on a feature branch never mutate the Main branch.
 # uses flask's test_client + a temp sqlite db so each run starts clean
@@ -11,7 +11,7 @@ import warnings
 
 # point the app at an isolated test db before importing it.
 # we use a real file (not :memory:) because sqlite in-memory dbs are
-# per-connection — different requests would otherwise see different dbs.
+# per-connection - different requests would otherwise see different dbs.
 _test_dir = tempfile.mkdtemp(prefix="docucommit_isolation_")
 TEST_DB_PATH = os.path.join(_test_dir, "isolation.db")
 os.environ["DATABASE_URL"] = f"sqlite:///{TEST_DB_PATH}"
@@ -33,12 +33,25 @@ from models import db  # noqa: E402
 
 # --- helpers ------------------------------------------------------------
 
+def authenticate(client):
+    """register a test user so the session is authenticated.
+    document creation requires a logged-in user (added when login landed),
+    so every test client needs a session before it can create docs."""
+    r = client.post(
+        "/api/auth/register",
+        json={"username": "tester", "password": "TestPass1!"},
+    )
+    assert r.status_code == 201, f"auth setup failed: {r.get_json()}"
+
+
 def fresh_client():
-    """wipe and rebuild the test db, return a flask test client."""
+    """wipe the test db and return an authenticated flask test client."""
     with app.app_context():
         db.drop_all()
         db.create_all()
-    return app.test_client()
+    client = app.test_client()
+    authenticate(client)
+    return client
 
 
 def create_doc(client, title="Test Doc", content="initial main text"):
@@ -204,7 +217,7 @@ def test_diff_endpoint_is_read_only():
     main_before = main_content(client, doc["id"])
     branch_before = get_branch(client, branch["id"])["current_content"]
 
-    # hit the diff endpoint several times — should never mutate state
+    # hit the diff endpoint several times - should never mutate state
     for _ in range(3):
         r = client.get(f"/api/branches/{branch['id']}/diff")
         assert r.status_code == 200, r.get_json()
@@ -217,7 +230,7 @@ def test_diff_endpoint_is_read_only():
 
 
 def test_main_byte_for_byte_unchanged_across_full_branch_lifecycle():
-    """end-to-end: branch, 5 rounds of edits, abandon — Main must be bit-exact.
+    """end-to-end: branch, 5 rounds of edits, abandon - Main must be bit-exact.
 
     note: apply_patch strips trailing newlines when reconstructing from an
     empty source, so we compare main-before to main-after (both go through
