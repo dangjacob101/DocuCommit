@@ -7,7 +7,7 @@ from models import db, User
 
 auth_bp = Blueprint("auth", __name__)
 
-EMAIL_RE = re.compile(r"^[a-zA-Z0-9]+@[a-zA-Z0-9]+$")
+EMAIL_RE = re.compile(r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$")
 NAME_RE = re.compile(r"^[a-zA-Z\s'-]+$")
 PASSWORD_RE = re.compile(
     r"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z0-9]).{8,}$"
@@ -49,7 +49,7 @@ def register():
 
     if not isinstance(email, str) or not EMAIL_RE.match(email):
         return jsonify({
-            "error": "Email must be in the format letters/numbers@letters/numbers"
+            "error": "Please enter a valid email address (e.g. you@example.com)"
         }), 400
 
     if not isinstance(first_name, str) or not first_name or not NAME_RE.match(first_name):
