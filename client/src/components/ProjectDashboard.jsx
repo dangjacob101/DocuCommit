@@ -171,5 +171,11 @@ export default function ProjectDashboard() {
 }
 
 function formatDate(iso) {
-  try { return new Date(iso).toLocaleDateString() } catch { return iso }
+  if (!iso) return ''
+  try {
+    const utcIso = iso.endsWith('Z') ? iso : iso + 'Z'
+    return new Date(utcIso).toLocaleDateString()
+  } catch {
+    return iso
+  }
 }
