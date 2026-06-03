@@ -29,7 +29,7 @@ export default function LoginPage({ onLoggedIn }) {
 
   function validate() {
     if (!email) return 'Email is required'
-    if (!/^[a-zA-Z0-9]+@[a-zA-Z0-9]+$/.test(email)) return 'Email must be in the format letters/numbers@letters/numbers'
+    if (!/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(email)) return 'Please enter a valid email address (e.g. you@example.com)'
 
     if (isSignUp) {
       if (!firstName.trim()) return 'First name is required'
