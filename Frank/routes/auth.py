@@ -1,7 +1,10 @@
+import os
 import re
+import uuid
 
 import bcrypt
-from flask import Blueprint, jsonify, request, session
+from flask import Blueprint, jsonify, request, session, send_from_directory, current_app
+from werkzeug.utils import secure_filename
 
 from models import db, User
 
@@ -12,6 +15,13 @@ NAME_RE = re.compile(r"^[a-zA-Z\s'-]+$")
 PASSWORD_RE = re.compile(
     r"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z0-9]).{8,}$"
 )
+
+ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
+MAX_FILE_SIZE = 5 * 1024 * 1024  # 5 MB
+
+
+def _allowed_file(filename):
+    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
 def _hash_password(plain):
@@ -28,6 +38,7 @@ def _user_dict(user):
         "email": user.email,
         "first_name": user.first_name,
         "last_name": user.last_name,
+        "profile_picture_url": f"/api/auth/profile-picture/{user.id}" if user.profile_picture else None,
     }
 
 
@@ -37,6 +48,13 @@ def get_current_user():
     if user_id is None:
         return None
     return User.query.get(user_id)
+
+
+def _uploads_dir():
+    """Return (and lazily create) the profile-pictures upload directory."""
+    path = os.path.join(current_app.instance_path, "uploads", "profile_pictures")
+    os.makedirs(path, exist_ok=True)
+    return path
 
 
 @auth_bp.route("/auth/register", methods=["POST"])
@@ -118,3 +136,52 @@ def me():
     if user is None:
         return jsonify({"error": "not authenticated"}), 401
     return jsonify({"user": _user_dict(user)})
+
+
+@auth_bp.route("/auth/profile-picture", methods=["POST"])
+def upload_profile_picture():
+    user = get_current_user()
+    if user is None:
+        return jsonify({"error": "not authenticated"}), 401
+
+    if "file" not in request.files:
+        return jsonify({"error": "No file provided"}), 400
+
+    file = request.files["file"]
+    if file.filename == "":
+        return jsonify({"error": "No file selected"}), 400
+
+    if not _allowed_file(file.filename):
+        return jsonify({"error": "File type not allowed. Use PNG, JPG, GIF, or WebP"}), 400
+
+    # Check file size
+    file.seek(0, os.SEEK_END)
+    size = file.tell()
+    file.seek(0)
+    if size > MAX_FILE_SIZE:
+        return jsonify({"error": "File too large. Maximum size is 5 MB"}), 400
+
+    # Delete old profile picture if it exists
+    if user.profile_picture:
+        old_path = os.path.join(_uploads_dir(), user.profile_picture)
+        if os.path.exists(old_path):
+            os.remove(old_path)
+
+    # Save with a unique filename
+    ext = file.filename.rsplit(".", 1)[1].lower()
+    filename = f"{user.id}_{uuid.uuid4().hex[:8]}.{ext}"
+    file.save(os.path.join(_uploads_dir(), filename))
+
+    user.profile_picture = filename
+    db.session.commit()
+
+    return jsonify({"user": _user_dict(user)})
+
+
+@auth_bp.route("/auth/profile-picture/<int:user_id>", methods=["GET"])
+def serve_profile_picture(user_id):
+    target_user = User.query.get(user_id)
+    if target_user is None or not target_user.profile_picture:
+        return jsonify({"error": "No profile picture found"}), 404
+
+    return send_from_directory(_uploads_dir(), target_user.profile_picture)
