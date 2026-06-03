@@ -8,6 +8,8 @@ import NewDocumentForm from './components/NewDocumentForm.jsx'
 import Editor from './components/Editor.jsx'
 import DiffViewer from './components/DiffViewer.jsx'
 import ConflictResolver from './components/ConflictResolver.jsx'
+import HistoryViewer from './components/HistoryViewer.jsx'
+
 
 export default function App() {
   const [user, setUser] = useState(null)
@@ -167,6 +169,8 @@ export default function App() {
           <Route path="/:projectSlug/:projectId/:docSlug/:docId/branches/:branchName" element={<Editor />} />
           <Route path="/:projectSlug/:projectId/:docSlug/:docId/branches/:branchName/diff" element={<DiffViewer />} />
           <Route path="/:projectSlug/:projectId/:docSlug/:docId/branches/:branchName/merge" element={<ConflictResolver />} />
+          <Route path="/:projectSlug/:projectId/:docSlug/:docId/history/:branchName" element={<HistoryViewer />} />
+
         </Routes>
       </main>
     </div>
