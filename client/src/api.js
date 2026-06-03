@@ -110,7 +110,15 @@ export function getMergePreview(branchId) {
   return send('GET', `/api/branches/${branchId}/merge/preview`)
 }
 
-export function exportDocument(documentId) {
-  return send('GET', `/api/documents/${documentId}/export`)
+export async function exportDocument(documentId) {
+  const res = await fetch(`/api/documents/${documentId}/export`, {
+    credentials: 'include',
+  })
+  if (!res.ok) {
+    let payload
+    try { payload = await res.json() } catch { payload = {} }
+    throw new Error(payload.error || `Export failed (${res.status})`)
+  }
+  return res.blob()
 }
 

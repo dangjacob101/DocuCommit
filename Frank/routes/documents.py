@@ -1,8 +1,9 @@
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, send_file
 
+from docx_generator import generate_docx_from_content
 from models import db, Document, Branch, Commit
 from routes.auth import get_current_user
-from utils import make_diff, reconstruct_branch_content, extract_plain_text
+from utils import make_diff, reconstruct_branch_content
 
 documents_bp = Blueprint("documents", __name__)
 
@@ -194,7 +195,13 @@ def export_document(doc_id):
         return jsonify({"error": "main branch not found"}), 500
 
     raw = reconstruct_branch_content(main_branch)
-    return jsonify({"title": doc.title, "content": extract_plain_text(raw)})
+    stream = generate_docx_from_content(doc.title, raw)
+    return send_file(
+        stream,
+        mimetype="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        as_attachment=True,
+        download_name=f"{doc.title}.docx",
+    )
 
 
 @documents_bp.route("/documents/<int:doc_id>", methods=["DELETE"])
