@@ -4,6 +4,17 @@ import re as _re
 from diff_engine import make_diff, compute_visual_diff  # noqa: F401
 
 
+def make_plain_text_diff(old_content: str, new_content: str) -> str:
+    """Compute a unified diff on the human-readable plain text of two TipTap
+    JSON documents.  The result is stored as ``Commit.plain_text_patch`` and
+    used for display in the history viewer — it never participates in patch
+    replay / reconstruction, which continues to use the raw ``diff_patch``."""
+    old_text = extract_plain_text(old_content)
+    new_text = extract_plain_text(new_content)
+    return make_diff(old_text, new_text)
+
+
+
 def extract_plain_text(content: str) -> str:
     """Extract human-readable plain text from a TipTap JSON string or raw HTML.
 

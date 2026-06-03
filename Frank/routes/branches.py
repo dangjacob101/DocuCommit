@@ -1,7 +1,8 @@
 from flask import Blueprint, jsonify, request
 
 from models import db, Document, Branch, Commit
-from utils import compute_visual_diff, make_diff, reconstruct_branch_content, extract_plain_text
+from utils import compute_visual_diff, make_diff, make_plain_text_diff, reconstruct_branch_content, extract_plain_text
+
 
 branches_bp = Blueprint("branches", __name__)
 
@@ -25,8 +26,10 @@ def commit_to_dict(commit):
         "branch_id": commit.branch_id,
         "message": commit.message,
         "diff_patch": commit.diff_patch,
+        "plain_text_patch": commit.plain_text_patch,
         "created_at": commit.created_at.isoformat() if commit.created_at else None,
     }
+
 
 
 @branches_bp.route("/documents/<int:doc_id>/branches", methods=["POST"])
@@ -116,13 +119,16 @@ def create_commit(branch_id):
         return jsonify({"error": "content must differ from the current branch state"}), 400
 
     diff_patch = make_diff(current_content, content)
+    plain_text_patch = make_plain_text_diff(current_content, content)
     commit = Commit(
         branch_id=branch_id,
         message=message.strip(),
         diff_patch=diff_patch,
+        plain_text_patch=plain_text_patch,
     )
     db.session.add(commit)
     db.session.commit()
+
 
     return jsonify(commit_to_dict(commit)), 201
 

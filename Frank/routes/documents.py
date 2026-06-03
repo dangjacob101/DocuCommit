@@ -3,7 +3,8 @@ from flask import Blueprint, jsonify, request, send_file
 from docx_generator import generate_docx_from_content
 from models import db, Document, Branch, Commit, Project
 from routes.auth import get_current_user
-from utils import make_diff, reconstruct_branch_content
+from utils import make_diff, make_plain_text_diff, reconstruct_branch_content
+
 
 documents_bp = Blueprint("documents", __name__)
 
@@ -31,7 +32,7 @@ def document_to_dict(doc):
 
 
 def document_commit_to_dict(
-    commit_id, branch_id, branch_name, is_main, message, diff_patch, created_at
+    commit_id, branch_id, branch_name, is_main, message, diff_patch, plain_text_patch, created_at
 ):
     return {
         "id": commit_id,
@@ -40,8 +41,10 @@ def document_commit_to_dict(
         "branch_is_main": is_main,
         "message": message,
         "diff_patch": diff_patch,
+        "plain_text_patch": plain_text_patch,
         "created_at": created_at.isoformat() if created_at else None,
     }
+
 
 
 @documents_bp.route("/documents", methods=["POST"])
@@ -94,12 +97,15 @@ def create_document():
 
     if content:
         diff_patch = make_diff("", content)
+        plain_text_patch = make_plain_text_diff("", content)
         initial_commit = Commit(
             branch_id=main_branch.id,
             message="Initial content",
             diff_patch=diff_patch,
+            plain_text_patch=plain_text_patch,
         )
         db.session.add(initial_commit)
+
 
     db.session.commit()
     return jsonify(document_to_dict(doc)), 201
@@ -153,6 +159,7 @@ def list_document_commits(doc_id):
             Branch.is_main,
             Commit.message,
             Commit.diff_patch,
+            Commit.plain_text_patch,
             Commit.created_at,
         )
         .join(Branch, Commit.branch_id == Branch.id)
@@ -162,6 +169,7 @@ def list_document_commits(doc_id):
     )
 
     return jsonify([document_commit_to_dict(*row) for row in rows])
+
 
 
 @documents_bp.route("/documents/<int:doc_id>", methods=["PUT"])
@@ -194,12 +202,15 @@ def update_document(doc_id):
             current = reconstruct_branch_content(main_branch)
             if content != current:
                 diff_patch = make_diff(current, content)
+                plain_text_patch = make_plain_text_diff(current, content)
                 commit = Commit(
                     branch_id=main_branch.id,
                     message="Updated document",
                     diff_patch=diff_patch,
+                    plain_text_patch=plain_text_patch,
                 )
                 db.session.add(commit)
+
 
     db.session.commit()
     return jsonify(document_to_dict(doc))

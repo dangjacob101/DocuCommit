@@ -95,6 +95,7 @@ class Commit(db.Model):
     branch_id = db.Column(db.Integer, db.ForeignKey("branches.id", ondelete="CASCADE"), nullable=False)
     message = db.Column(db.Text, nullable=False)
     diff_patch = db.Column(db.Text, nullable=False)
+    plain_text_patch = db.Column(db.Text, nullable=True)  # human-readable diff for display
     created_at = db.Column(db.DateTime, default=now_utc)
 
     branch = db.relationship(
@@ -108,6 +109,20 @@ def create_missing_indexes():
     for table in (Branch.__table__, Commit.__table__, Project.__table__):
         for index in table.indexes:
             index.create(bind=db.engine, checkfirst=True)
+
+
+def migrate_commits_schema():
+    """Add plain_text_patch column to commits table if it doesn't exist."""
+    from sqlalchemy import inspect
+
+    inspector = inspect(db.engine)
+    if "commits" not in inspector.get_table_names():
+        return
+
+    columns = {col["name"] for col in inspector.get_columns("commits")}
+    if "plain_text_patch" not in columns:
+        with db.engine.begin() as conn:
+            conn.exec_driver_sql("ALTER TABLE commits ADD COLUMN plain_text_patch TEXT")
 
 
 def migrate_documents_project_id():

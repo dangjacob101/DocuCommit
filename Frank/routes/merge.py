@@ -2,7 +2,8 @@ from flask import Blueprint, jsonify, request
 
 from models import db, Branch, Commit, Document
 from routes.auth import get_current_user
-from utils import reconstruct_branch_content, reconstruct_content, make_diff
+from utils import reconstruct_branch_content, reconstruct_content, make_diff, make_plain_text_diff
+
 from merge_engine import (
     three_way_merge,
     apply_resolutions,
@@ -35,11 +36,13 @@ def _overwrite_main_with_branch(main_branch, branch):
             branch_id=main_branch.id,
             message=f"Merge branch '{branch.name}' into Main",
             diff_patch=make_diff(main_content, branch_content),
+            plain_text_patch=make_plain_text_diff(main_content, branch_content),
         )
         db.session.add(merge_commit)
 
     db.session.delete(branch)
     return branch_content, merge_commit
+
 
 
 @merge_bp.route("/branches/<int:branch_id>/merge/preview", methods=["GET"])
@@ -176,8 +179,10 @@ def merge_branch(branch_id):
             branch_id=main_branch.id,
             message=f"Merge branch '{branch_name}' into Main (conflicts resolved)",
             diff_patch=make_diff(main_text, merged_text),
+            plain_text_patch=make_plain_text_diff(main_text, merged_text),
         )
         db.session.add(merge_commit)
+
 
     db.session.delete(branch)
     db.session.commit()
