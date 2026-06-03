@@ -1,7 +1,7 @@
 from flask import Blueprint, jsonify, request, send_file
 
 from docx_generator import generate_docx_from_content
-from models import db, Document, Branch, Commit
+from models import db, Document, Branch, Commit, Project
 from routes.auth import get_current_user
 from utils import make_diff, reconstruct_branch_content
 
@@ -23,6 +23,7 @@ def document_to_dict(doc):
         "id": doc.id,
         "title": doc.title,
         "owner_id": doc.owner_id,
+        "project_id": doc.project_id,
         "content": content,
         "created_at": doc.created_at.isoformat() if doc.created_at else None,
         "updated_at": updated_at.isoformat() if updated_at else None,
@@ -58,7 +59,27 @@ def create_document():
     if not isinstance(content, str):
         return jsonify({"error": "content must be a string"}), 400
 
-    doc = Document(title=title.strip(), owner_id=user.id)
+    project_id = data.get("project_id")
+    if project_id is not None:
+        project = Project.query.get(project_id)
+        if project is None:
+            return jsonify({"error": "project not found"}), 404
+        if project.owner_id != user.id:
+            return jsonify({"error": "access denied"}), 403
+    else:
+        project = (
+            Project.query.filter_by(owner_id=user.id).order_by(Project.id).first()
+        )
+        if project is None:
+            workspace_name = (
+                f"{user.first_name}'s Workspace" if user.first_name else "My Workspace"
+            )
+            project = Project(name=workspace_name, owner_id=user.id)
+            db.session.add(project)
+            db.session.flush()
+        project_id = project.id
+
+    doc = Document(title=title.strip(), owner_id=user.id, project_id=project_id)
     db.session.add(doc)
     db.session.flush()
 
