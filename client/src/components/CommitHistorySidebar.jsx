@@ -11,7 +11,11 @@ export default function CommitHistorySidebar({ branchId }) {
     try {
       setLoading(true)
       const rows = await listCommits(branchId)
-      setCommits(rows.slice().reverse())
+      const indexedRows = rows.map((c, idx) => ({
+        ...c,
+        seqNumber: idx + 1
+      }))
+      setCommits(indexedRows.reverse())
       setError(null)
     } catch (e) {
       setError(e.message)
@@ -40,7 +44,7 @@ export default function CommitHistorySidebar({ branchId }) {
           <li key={c.id} className="commit-item">
             <div className="commit-message">{c.message}</div>
             <div className="commit-meta">
-              <span className="muted">#{c.id}</span>
+              <span className="muted">#{c.seqNumber}</span>
               <span className="muted">{formatDate(c.created_at)}</span>
             </div>
           </li>

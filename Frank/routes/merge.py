@@ -38,7 +38,7 @@ def _overwrite_main_with_branch(main_branch, branch):
         )
         db.session.add(merge_commit)
 
-    branch.status = "merged"
+    db.session.delete(branch)
     return branch_content, merge_commit
 
 
@@ -129,12 +129,14 @@ def merge_branch(branch_id):
     resolutions = data.get("resolutions")
 
     if progression["is_linear"]:
+        branch_id = branch.id
+        branch_name = branch.name
         main_content, merge_commit = _overwrite_main_with_branch(main_branch, branch)
         db.session.commit()
         return jsonify({
-            "message": f"Branch '{branch.name}' merged into Main",
-            "branch_id": branch.id,
-            "branch_status": branch.status,
+            "message": f"Branch '{branch_name}' merged into Main",
+            "branch_id": branch_id,
+            "branch_status": "deleted",
             "main_branch_id": main_branch.id,
             "merge_commit_id": merge_commit.id if merge_commit else None,
             "main_content": main_content,
@@ -165,22 +167,25 @@ def merge_branch(branch_id):
     except ValueError as exc:
         return jsonify({"error": str(exc)}), 400
 
+    branch_id = branch.id
+    branch_name = branch.name
+
     merge_commit = None
     if main_text != merged_text:
         merge_commit = Commit(
             branch_id=main_branch.id,
-            message=f"Merge branch '{branch.name}' into Main (conflicts resolved)",
+            message=f"Merge branch '{branch_name}' into Main (conflicts resolved)",
             diff_patch=make_diff(main_text, merged_text),
         )
         db.session.add(merge_commit)
 
-    branch.status = "merged"
+    db.session.delete(branch)
     db.session.commit()
 
     return jsonify({
-        "message": f"Branch '{branch.name}' merged into Main (conflicts resolved)",
-        "branch_id": branch.id,
-        "branch_status": branch.status,
+        "message": f"Branch '{branch_name}' merged into Main (conflicts resolved)",
+        "branch_id": branch_id,
+        "branch_status": "deleted",
         "main_branch_id": main_branch.id,
         "merge_commit_id": merge_commit.id if merge_commit else None,
         "main_content": merged_text,

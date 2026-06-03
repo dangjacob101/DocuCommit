@@ -27,13 +27,9 @@ class MergeRouteTest(unittest.TestCase):
     def _login(self):
         response = self.client.post(
             "/api/auth/login",
-            json={"username": "frank", "password": "CS35LTeamprofile!"},
+            json={"email": "frank@docucommit.com", "password": "CS35LTeamprofile!"},
         )
         self.assertEqual(response.status_code, 200)
-        self.client.post(
-            "/api/auth/register",
-            json={"username": "merge_test", "password": "MergeTest1!"},
-        )
 
     def tearDown(self):
         with self.app.app_context():
@@ -76,26 +72,29 @@ class MergeRouteTest(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         payload = response.get_json()
-        self.assertEqual(payload["branch_status"], "merged")
+        self.assertEqual(payload["branch_status"], "deleted")
         self.assertEqual(payload["main_content"], incoming_content)
         self.assertIsNotNone(payload["merge_commit_id"])
 
         with self.app.app_context():
+            # Branch should be deleted from DB
             merged_branch = db.session.get(Branch, branch["id"])
+            self.assertIsNone(merged_branch)
+
             main_branch = Branch.query.filter_by(
                 document_id=document["id"], is_main=True
             ).first()
             merge_commit = db.session.get(Commit, payload["merge_commit_id"])
 
-            self.assertEqual(merged_branch.status, "merged")
             self.assertEqual(merge_commit.branch_id, main_branch.id)
             self.assertEqual(reconstruct_branch_content(main_branch), incoming_content)
 
+        # Branch no longer exists — committing to it returns 404
         rejected = self.client.post(
             f"/api/branches/{branch['id']}/commits",
             json={"message": "Late edit", "content": "Should not save"},
         )
-        self.assertEqual(rejected.status_code, 409)
+        self.assertEqual(rejected.status_code, 404)
 
     # ── Diverged: merge without resolutions → 409 with conflict flag ──
 
@@ -211,7 +210,7 @@ class MergeRouteTest(unittest.TestCase):
         )
         self.assertEqual(response.status_code, 200)
         payload = response.get_json()
-        self.assertEqual(payload["branch_status"], "merged")
+        self.assertEqual(payload["branch_status"], "deleted")
         self.assertIn("MAIN edit", payload["main_content"])
 
     def test_merge_with_resolutions_pick_branch(self):
@@ -239,7 +238,7 @@ class MergeRouteTest(unittest.TestCase):
         )
         self.assertEqual(response.status_code, 200)
         payload = response.get_json()
-        self.assertEqual(payload["branch_status"], "merged")
+        self.assertEqual(payload["branch_status"], "deleted")
         self.assertIn("BRANCH edit", payload["main_content"])
 
     def test_merge_with_missing_resolutions_returns_400(self):

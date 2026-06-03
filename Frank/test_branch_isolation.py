@@ -38,7 +38,15 @@ def fresh_client():
     with app.app_context():
         db.drop_all()
         db.create_all()
-    return app.test_client()
+        from app import _seed_default_user
+        _seed_default_user()
+    client = app.test_client()
+    r = client.post(
+        "/api/auth/login",
+        json={"email": "frank@docucommit.com", "password": "CS35LTeamprofile!"},
+    )
+    assert r.status_code == 200, f"fresh_client login failed: {r.get_json()}"
+    return client
 
 
 def create_doc(client, title="Test Doc", content="initial main text"):
