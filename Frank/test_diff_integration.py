@@ -34,7 +34,12 @@ def authenticate(client):
     document creation requires a logged-in user."""
     r = client.post(
         "/api/auth/register",
-        json={"username": "tester", "password": "TestPass1!"},
+        json={
+            "email": "tester@example.com",
+            "first_name": "Test",
+            "last_name": "User",
+            "password": "TestPass1!",
+        },
     )
     assert r.status_code == 201, f"auth setup failed: {r.get_json()}"
 
