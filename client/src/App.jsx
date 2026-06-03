@@ -2,7 +2,8 @@ import { useEffect, useState, useRef } from 'react'
 import { Routes, Route } from 'react-router-dom'
 import { getMe, logout as apiLogout, uploadProfilePicture } from './api.js'
 import LoginPage from './components/LoginPage.jsx'
-import DocumentDashboard from './components/DocumentDashboard.jsx'
+import ProjectDashboard from './components/ProjectDashboard.jsx'
+import ProjectView from './components/ProjectView.jsx'
 import NewDocumentForm from './components/NewDocumentForm.jsx'
 import Editor from './components/Editor.jsx'
 import DiffViewer from './components/DiffViewer.jsx'
@@ -160,11 +161,12 @@ export default function App() {
       </header>
       <main>
         <Routes>
-          <Route path="/" element={<DocumentDashboard />} />
-          <Route path="/create-new-document" element={<NewDocumentForm />} />
-          <Route path="/:docSlug/:docId/branches/:branchName" element={<Editor />} />
-          <Route path="/:docSlug/:docId/branches/:branchName/diff" element={<DiffViewer />} />
-          <Route path="/:docSlug/:docId/branches/:branchName/merge" element={<ConflictResolver />} />
+          <Route path="/" element={<ProjectDashboard />} />
+          <Route path="/:projectSlug/:projectId" element={<ProjectView />} />
+          <Route path="/:projectSlug/:projectId/new-document" element={<NewDocumentForm />} />
+          <Route path="/:projectSlug/:projectId/:docSlug/:docId/branches/:branchName" element={<Editor />} />
+          <Route path="/:projectSlug/:projectId/:docSlug/:docId/branches/:branchName/diff" element={<DiffViewer />} />
+          <Route path="/:projectSlug/:projectId/:docSlug/:docId/branches/:branchName/merge" element={<ConflictResolver />} />
         </Routes>
       </main>
     </div>
