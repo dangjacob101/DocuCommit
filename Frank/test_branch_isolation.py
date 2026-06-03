@@ -1,25 +1,20 @@
-# test_branch_isolation.py — week 5 deliverable
-#
-# proves that edits made on a feature branch never mutate the Main branch.
-# uses flask's test_client + a temp sqlite db so each run starts clean
-# and the dev db (documents.db) is never touched.
+# tests that editing a branch never changes the main document.
+# runs against a throwaway sqlite db so the real one isn't touched.
 
 import os
 import sys
 import tempfile
 import warnings
 
-# point the app at an isolated test db before importing it.
-# we use a real file (not :memory:) because sqlite in-memory dbs are
-# per-connection — different requests would otherwise see different dbs.
+# temp db file, set before importing app. using a file instead of :memory:
+# because in-memory sqlite is per-connection and requests would each get
+# their own empty db.
 _test_dir = tempfile.mkdtemp(prefix="docucommit_isolation_")
 TEST_DB_PATH = os.path.join(_test_dir, "isolation.db")
 os.environ["DATABASE_URL"] = f"sqlite:///{TEST_DB_PATH}"
 
-# branches and commits reference each other (branch.branched_from_commit_id
-# points at commits.id, commits.branch_id points at branches.id). sqlite
-# can't ALTER to break that cycle on DROP, so sqlalchemy warns. the drop
-# still works; just silence the noise so test output stays readable.
+# branches and commits point at each other so sqlite can't order the tables
+# for DROP and warns about it. it still works, so just hide the warning.
 warnings.filterwarnings(
     "ignore",
     message=r"Can't sort tables for DROP",
@@ -27,14 +22,14 @@ warnings.filterwarnings(
 
 sys.path.insert(0, ".")
 
-from app import app  # noqa: E402  (must come after env var is set)
+from app import app  # noqa: E402
 from models import db  # noqa: E402
 
 
 # --- helpers ------------------------------------------------------------
 
 def fresh_client():
-    """wipe and rebuild the test db, return a flask test client."""
+    """wipe the test db and return an authenticated flask test client."""
     with app.app_context():
         db.drop_all()
         db.create_all()
@@ -212,7 +207,7 @@ def test_diff_endpoint_is_read_only():
     main_before = main_content(client, doc["id"])
     branch_before = get_branch(client, branch["id"])["current_content"]
 
-    # hit the diff endpoint several times — should never mutate state
+    # hit the diff endpoint several times - should never mutate state
     for _ in range(3):
         r = client.get(f"/api/branches/{branch['id']}/diff")
         assert r.status_code == 200, r.get_json()
@@ -225,12 +220,11 @@ def test_diff_endpoint_is_read_only():
 
 
 def test_main_byte_for_byte_unchanged_across_full_branch_lifecycle():
-    """end-to-end: branch, 5 rounds of edits, abandon — Main must be bit-exact.
+    """branch, do 5 rounds of edits, never merge - main should be unchanged.
 
-    note: apply_patch strips trailing newlines when reconstructing from an
-    empty source, so we compare main-before to main-after (both go through
-    the same pipeline) rather than to the raw input string. that's the
-    correct isolation question anyway.
+    we compare main before vs after (not vs the raw input) because apply_patch
+    drops the trailing newline when rebuilding from empty. same pipeline both
+    times, so that's fine.
     """
     client = fresh_client()
     initial = "legal contract draft v1\nsection A\nsection B\n"
