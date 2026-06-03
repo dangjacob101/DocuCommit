@@ -49,6 +49,28 @@ export async function uploadProfilePicture(file) {
   return res.json()
 }
 
+// ── Projects ──
+
+export function listProjects() {
+  return send('GET', '/api/projects')
+}
+
+export function getProject(id) {
+  return send('GET', `/api/projects/${id}`)
+}
+
+export function createProject(name) {
+  return send('POST', '/api/projects', { name })
+}
+
+export function renameProject(id, name) {
+  return send('PATCH', `/api/projects/${id}`, { name })
+}
+
+export function deleteProject(id) {
+  return send('DELETE', `/api/projects/${id}`)
+}
+
 // ── Documents ──
 
 export function listDocuments(searchQuery = '') {
@@ -68,8 +90,12 @@ export function listDocumentCommits(documentId) {
   return send('GET', `/api/documents/${documentId}/commits`)
 }
 
-export function createDocument(title, content) {
-  return send('POST', '/api/documents', { title, content })
+export function createDocument(title, content, projectId) {
+  const body = { title, content }
+  if (projectId !== undefined && projectId !== null) {
+    body.project_id = projectId
+  }
+  return send('POST', '/api/documents', body)
 }
 
 export function listBranches(documentId) {
