@@ -25,7 +25,7 @@ class SafeMergeTest(unittest.TestCase):
     def _login(self):
         self.client.post(
             "/api/auth/login",
-            json={"username": "frank", "password": "CS35LTeamprofile!"},
+            json={"email": "frank@docucommit.com", "password": "CS35LTeamprofile!"},
         )
 
     def tearDown(self):
@@ -65,7 +65,7 @@ class SafeMergeTest(unittest.TestCase):
         r = self.client.post(f"/api/branches/{branch['id']}/merge")
         self.assertEqual(r.status_code, 200)
         payload = r.get_json()
-        self.assertEqual(payload["branch_status"], "merged")
+        self.assertEqual(payload["branch_status"], "deleted")
         self.assertIn("New line added", payload["main_content"])
 
     def test_diverged_rejects_without_resolutions(self):
@@ -170,7 +170,7 @@ class SafeMergeTest(unittest.TestCase):
         self.assertEqual(r1.status_code, 200)
 
         r2 = self.client.post(f"/api/branches/{branch['id']}/merge")
-        self.assertEqual(r2.status_code, 409)
+        self.assertEqual(r2.status_code, 404)
 
     def test_merge_preview_on_merged_branch_rejected(self):
         doc = self._create_document("Hello")
@@ -179,7 +179,7 @@ class SafeMergeTest(unittest.TestCase):
         self.client.post(f"/api/branches/{branch['id']}/merge")
 
         r = self.client.get(f"/api/branches/{branch['id']}/merge/preview")
-        self.assertEqual(r.status_code, 409)
+        self.assertEqual(r.status_code, 404)
 
     def test_resolution_with_all_three_options(self):
         doc = self._create_document("A\nB\nC\nD\nE\nF\nG")
@@ -207,7 +207,7 @@ class SafeMergeTest(unittest.TestCase):
             json={"resolutions": resolutions},
         )
         self.assertEqual(r.status_code, 200)
-        self.assertEqual(r.get_json()["branch_status"], "merged")
+        self.assertEqual(r.get_json()["branch_status"], "deleted")
 
     def test_merge_preserves_main_history(self):
         doc = self._create_document("Start")
@@ -295,7 +295,12 @@ class SafeMergeTest(unittest.TestCase):
         client = self.app.test_client()
         r_reg = client.post(
             "/api/auth/register",
-            json={"username": "alice", "password": "CS35LTeamprofile2!"},
+            json={
+                "email": "alice@docucommit.com",
+                "first_name": "Alice",
+                "last_name": "User",
+                "password": "CS35LTeamprofile2!",
+            },
         )
         self.assertEqual(r_reg.status_code, 201)
 

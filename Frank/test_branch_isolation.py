@@ -28,27 +28,19 @@ from models import db  # noqa: E402
 
 # --- helpers ------------------------------------------------------------
 
-def authenticate(client):
-    """register a user so the client has a session. creating docs needs login."""
-    r = client.post(
-        "/api/auth/register",
-        json={
-            "email": "tester@example.com",
-            "first_name": "Test",
-            "last_name": "User",
-            "password": "TestPass1!",
-        },
-    )
-    assert r.status_code == 201, f"auth setup failed: {r.get_json()}"
-
-
 def fresh_client():
     """wipe the test db and return an authenticated flask test client."""
     with app.app_context():
         db.drop_all()
         db.create_all()
+        from app import _seed_default_user
+        _seed_default_user()
     client = app.test_client()
-    authenticate(client)
+    r = client.post(
+        "/api/auth/login",
+        json={"email": "frank@docucommit.com", "password": "CS35LTeamprofile!"},
+    )
+    assert r.status_code == 200, f"fresh_client login failed: {r.get_json()}"
     return client
 
 
