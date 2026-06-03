@@ -17,12 +17,12 @@ async function send(method, path, body) {
 
 // ── Auth ──
 
-export function register(username, password) {
-  return send('POST', '/api/auth/register', { username, password })
+export function register(email, firstName, lastName, password) {
+  return send('POST', '/api/auth/register', { email, first_name: firstName, last_name: lastName, password })
 }
 
-export function login(username, password) {
-  return send('POST', '/api/auth/login', { username, password })
+export function login(email, password) {
+  return send('POST', '/api/auth/login', { email, password })
 }
 
 export function logout() {

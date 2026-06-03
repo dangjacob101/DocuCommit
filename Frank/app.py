@@ -35,7 +35,7 @@ def _seed_default_user():
     """Create the default 'frank' user if it does not exist and assign
     any orphaned documents (owner_id IS NULL) to that user."""
     existing = User.query.filter(
-        db.func.lower(User.username) == "frank"
+        db.func.lower(User.email) == "frank@docucommit.com"
     ).first()
 
     if existing is None:
@@ -43,7 +43,12 @@ def _seed_default_user():
             "CS35LTeamprofile!".encode("utf-8"),
             bcrypt.gensalt(),
         ).decode("utf-8")
-        existing = User(username="frank", hashed_password=hashed)
+        existing = User(
+            email="frank@docucommit.com",
+            first_name="Frank",
+            last_name="Admin",
+            hashed_password=hashed,
+        )
         db.session.add(existing)
         db.session.flush()
 
