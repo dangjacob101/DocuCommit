@@ -108,7 +108,7 @@ function MergeSummaryBar({ summary }) {
 }
 
 export default function ConflictResolver() {
-  const { docSlug, docId, branchName } = useParams()
+  const { projectSlug, projectId, docSlug, docId, branchName } = useParams()
   const navigate = useNavigate()
 
   const [preview, setPreview] = useState(null)
@@ -175,7 +175,7 @@ export default function ConflictResolver() {
     setEditingId(null)
   }
 
-  const backPath = `/${docSlug}/${docId}/branches/${branchName}`
+  const backPath = `/${projectSlug}/${projectId}/${docSlug}/${docId}/branches/${branchName}`
 
   async function onFinish() {
     if (!branchId) return
@@ -188,7 +188,7 @@ export default function ConflictResolver() {
         conflictResolutions[h.id] = resolutions[h.id]
       }
       await mergeBranch(branchId, conflictResolutions)
-      navigate(`/${docSlug}/${docId}/branches/main`)
+      navigate(`/${projectSlug}/${projectId}/${docSlug}/${docId}/branches/main`)
     } catch (e) {
       setError(e.message)
     } finally {

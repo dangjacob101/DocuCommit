@@ -1,14 +1,17 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { createDocument, listBranches } from '../api.js'
 import { slugify } from '../utils.js'
 
 export default function NewDocumentForm() {
+  const { projectSlug, projectId } = useParams()
   const navigate = useNavigate()
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
+
+  const cancelTo = projectId ? `/${projectSlug}/${projectId}` : '/'
 
   async function submit(e) {
     e.preventDefault()
@@ -19,10 +22,10 @@ export default function NewDocumentForm() {
     setSaving(true)
     setError(null)
     try {
-      const doc = await createDocument(title.trim(), content)
+      const doc = await createDocument(title.trim(), content, projectId ? parseInt(projectId) : undefined)
       const branches = await listBranches(doc.id)
       const main = branches.find(b => b.name === 'Main') || branches[0]
-      navigate(`/${slugify(title)}/${doc.id}/branches/${slugify(main.name)}`)
+      navigate(`/${projectSlug}/${projectId}/${slugify(title)}/${doc.id}/branches/${slugify(main.name)}`)
     } catch (err) {
       setError(err.message)
       setSaving(false)
@@ -55,7 +58,7 @@ export default function NewDocumentForm() {
         </label>
         {error && <p className="error">{error}</p>}
         <div className="row end">
-          <button type="button" onClick={() => navigate('/')} disabled={saving}>
+          <button type="button" onClick={() => navigate(cancelTo)} disabled={saving}>
             Cancel
           </button>
           <button type="submit" disabled={!title.trim() || saving}>

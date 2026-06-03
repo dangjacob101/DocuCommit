@@ -99,7 +99,7 @@ function SummaryBar({ summary }) {
 // ─── Page ──────────────────────────────────────────────────────────────────
 
 export default function DiffViewer() {
-  const { docId, docSlug, branchName } = useParams()
+  const { projectSlug, projectId, docId, docSlug, branchName } = useParams()
   const navigate = useNavigate()
 
   const [diffData, setDiffData] = useState(null)
@@ -132,7 +132,7 @@ export default function DiffViewer() {
       .finally(() => setLoading(false))
   }, [branchId, ignoreWs])
 
-  const backPath = `/${docSlug}/${docId}/branches/${branchName}`
+  const backPath = `/${projectSlug}/${projectId}/${docSlug}/${docId}/branches/${branchName}`
 
   return (
     <section className="diff-page">

@@ -10,8 +10,9 @@ import CommitHistorySidebar from './CommitHistorySidebar.jsx'
 import Modal from './Modal.jsx'
 
 export default function Editor() {
-  const { docId, branchName } = useParams()
+  const { projectSlug, projectId, docId, branchName } = useParams()
   const navigate = useNavigate()
+  const projectPath = `/${projectSlug}/${projectId}`
 
   const [doc, setDoc] = useState(null)
   const [branch, setBranch] = useState(null)
@@ -49,7 +50,7 @@ export default function Editor() {
   const dirty = content !== baseline
 
   function goTo(next) {
-    navigate(`/${slugify(doc.title)}/${docId}/branches/${slugify(next.name)}`)
+    navigate(`${projectPath}/${slugify(doc.title)}/${docId}/branches/${slugify(next.name)}`)
   }
 
   function trySwitch(next) {
@@ -73,7 +74,7 @@ export default function Editor() {
 
   function handleBranchCreated(newBranch) {
     setShowNewBranch(false)
-    navigate(`/${slugify(doc.title)}/${docId}/branches/${slugify(newBranch.name)}`)
+    navigate(`${projectPath}/${slugify(doc.title)}/${docId}/branches/${slugify(newBranch.name)}`)
   }
 
   async function handleExport() {
@@ -102,7 +103,7 @@ export default function Editor() {
       const updated = await updateDocument(docId, editTitleVal)
       setDoc(updated)
       setIsEditingTitle(false)
-      navigate(`/${slugify(updated.title)}/${docId}/branches/${branchName}`, { replace: true })
+      navigate(`${projectPath}/${slugify(updated.title)}/${docId}/branches/${branchName}`, { replace: true })
     } catch (e) {
       alert(`Failed to update title: ${e.message}`)
     } finally {
@@ -115,7 +116,7 @@ export default function Editor() {
     <div className="error error-row">
       <span>{error}</span>
       <div className="left-group">
-        <button onClick={() => navigate('/')}>Back</button>
+        <button onClick={() => navigate(projectPath)}>Back</button>
         <button onClick={load}>Retry</button>
       </div>
     </div>
@@ -125,7 +126,7 @@ export default function Editor() {
     <section>
       <div className="row">
         <div className="left-group">
-          <button onClick={() => navigate('/')}>Back</button>
+          <button onClick={() => navigate(projectPath)}>Back</button>
           <BranchPicker
             documentId={parseInt(docId)}
             currentBranchId={branch.id}
@@ -137,7 +138,7 @@ export default function Editor() {
           {!branch.is_main && (
             <button
               id="compare-to-main-btn"
-              onClick={() => navigate(`/${slugify(doc.title)}/${docId}/branches/${branchName}/diff`)}
+              onClick={() => navigate(`${projectPath}/${slugify(doc.title)}/${docId}/branches/${branchName}/diff`)}
             >
               Compare to Main
             </button>
@@ -149,10 +150,10 @@ export default function Editor() {
                 try {
                   await mergeBranch(branch.id)
                   // Clean merge succeeded — navigate to Main
-                  navigate(`/${slugify(doc.title)}/${docId}/branches/main`)
+                  navigate(`${projectPath}/${slugify(doc.title)}/${docId}/branches/main`)
                 } catch (e) {
                   // Conflict — redirect to the conflict resolver
-                  navigate(`/${slugify(doc.title)}/${docId}/branches/${branchName}/merge`)
+                  navigate(`${projectPath}/${slugify(doc.title)}/${docId}/branches/${branchName}/merge`)
                 }
               }}
             >
