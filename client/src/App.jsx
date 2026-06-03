@@ -49,7 +49,7 @@ export default function App() {
       <header>
         <h1>DocuCommit</h1>
         <div className="header-right">
-          <span className="header-user">{user.username}</span>
+          <span className="header-user">{user.first_name} {user.last_name}</span>
           <button id="logout-btn" className="logout-btn" onClick={handleLogout}>Log Out</button>
         </div>
       </header>

@@ -7,7 +7,8 @@ from models import db, User
 
 auth_bp = Blueprint("auth", __name__)
 
-USERNAME_RE = re.compile(r"^[a-zA-Z0-9_-]+$")
+EMAIL_RE = re.compile(r"^[a-zA-Z0-9]+@[a-zA-Z0-9]+$")
+NAME_RE = re.compile(r"^[a-zA-Z\s'-]+$")
 PASSWORD_RE = re.compile(
     r"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z0-9]).{8,}$"
 )
@@ -22,7 +23,12 @@ def _check_password(plain, hashed):
 
 
 def _user_dict(user):
-    return {"id": user.id, "username": user.username}
+    return {
+        "id": user.id,
+        "email": user.email,
+        "first_name": user.first_name,
+        "last_name": user.last_name,
+    }
 
 
 def get_current_user():
@@ -36,29 +42,44 @@ def get_current_user():
 @auth_bp.route("/auth/register", methods=["POST"])
 def register():
     data = request.get_json(silent=True) or {}
-    username = data.get("username", "")
+    email = data.get("email", "")
+    first_name = data.get("first_name", "").strip()
+    last_name = data.get("last_name", "").strip()
     password = data.get("password", "")
 
-    if not isinstance(username, str) or not USERNAME_RE.match(username):
+    if not isinstance(email, str) or not EMAIL_RE.match(email):
         return jsonify({
-            "error": "Username must be 3-50 characters and contain only letters, numbers, underscores, or hyphens"
+            "error": "Email must be in the format letters/numbers@letters/numbers"
         }), 400
 
-    if len(username) < 3 or len(username) > 50:
+    if not isinstance(first_name, str) or not first_name or not NAME_RE.match(first_name):
         return jsonify({
-            "error": "Username must be between 3 and 50 characters"
+            "error": "First name is required and must contain only letters"
         }), 400
+
+    if len(first_name) > 100:
+        return jsonify({"error": "First name must be 100 characters or fewer"}), 400
+
+    if not isinstance(last_name, str) or not last_name or not NAME_RE.match(last_name):
+        return jsonify({
+            "error": "Last name is required and must contain only letters"
+        }), 400
+
+    if len(last_name) > 100:
+        return jsonify({"error": "Last name must be 100 characters or fewer"}), 400
 
     if not isinstance(password, str) or not PASSWORD_RE.match(password):
         return jsonify({
             "error": "Password must be at least 8 characters with uppercase, lowercase, digit, and special character"
         }), 400
 
-    if User.query.filter(db.func.lower(User.username) == username.lower()).first():
-        return jsonify({"error": "Username is already taken"}), 409
+    if User.query.filter(db.func.lower(User.email) == email.lower()).first():
+        return jsonify({"error": "An account with this email already exists"}), 409
 
     user = User(
-        username=username.lower(),
+        email=email.lower(),
+        first_name=first_name,
+        last_name=last_name,
         hashed_password=_hash_password(password),
     )
     db.session.add(user)
@@ -71,15 +92,15 @@ def register():
 @auth_bp.route("/auth/login", methods=["POST"])
 def login():
     data = request.get_json(silent=True) or {}
-    username = data.get("username", "")
+    email = data.get("email", "")
     password = data.get("password", "")
 
     user = User.query.filter(
-        db.func.lower(User.username) == username.lower()
+        db.func.lower(User.email) == email.lower()
     ).first()
 
     if user is None or not _check_password(password, user.hashed_password):
-        return jsonify({"error": "Invalid username or password"}), 401
+        return jsonify({"error": "Invalid email or password"}), 401
 
     session["user_id"] = user.id
     return jsonify({"user": _user_dict(user)})

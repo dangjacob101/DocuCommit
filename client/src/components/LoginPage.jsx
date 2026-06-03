@@ -11,7 +11,9 @@ const PASSWORD_RULES = [
 
 export default function LoginPage({ onLoggedIn }) {
   const [mode, setMode] = useState('login')
-  const [username, setUsername] = useState('')
+  const [email, setEmail] = useState('')
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(false)
@@ -26,11 +28,15 @@ export default function LoginPage({ onLoggedIn }) {
   const allRulesPassed = ruleResults.every((r) => r.passed)
 
   function validate() {
-    if (username.length < 3) return 'Username must be at least 3 characters'
-    if (!/^[a-zA-Z0-9_-]+$/.test(username)) return 'Username can only contain letters, numbers, underscores, and hyphens'
-    if (isSignUp && !allRulesPassed) {
-      return 'Please satisfy all password requirements'
+    if (!email) return 'Email is required'
+    if (!/^[a-zA-Z0-9]+@[a-zA-Z0-9]+$/.test(email)) return 'Email must be in the format letters/numbers@letters/numbers'
+
+    if (isSignUp) {
+      if (!firstName.trim()) return 'First name is required'
+      if (!lastName.trim()) return 'Last name is required'
+      if (!allRulesPassed) return 'Please satisfy all password requirements'
     }
+
     if (!isSignUp && password.length < 8) return 'Password must be at least 8 characters'
     return null
   }
@@ -47,8 +53,8 @@ export default function LoginPage({ onLoggedIn }) {
     setError(null)
     try {
       const result = isSignUp
-        ? await register(username, password)
-        : await login(username, password)
+        ? await register(email, firstName.trim(), lastName.trim(), password)
+        : await login(email, password)
       onLoggedIn(result.user)
     } catch (err) {
       setError(err.message)
@@ -69,17 +75,47 @@ export default function LoginPage({ onLoggedIn }) {
 
         <form onSubmit={handleSubmit}>
           <label>
-            Username
+            Email
             <input
-              id="login-username"
+              id="login-email"
               type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              placeholder="e.g. frank"
-              autoComplete="username"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="e.g. frank@example.com"
+              autoComplete="email"
               autoFocus
             />
           </label>
+
+          {isSignUp && (
+            <>
+              <div className="login-name-row">
+                <label>
+                  First Name
+                  <input
+                    id="login-first-name"
+                    type="text"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    placeholder="e.g. Frank"
+                    autoComplete="given-name"
+                  />
+                </label>
+                <label>
+                  Last Name
+                  <input
+                    id="login-last-name"
+                    type="text"
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    placeholder="e.g. Smith"
+                    autoComplete="family-name"
+                  />
+                </label>
+              </div>
+            </>
+          )}
+
           <label>
             Password
             <input
@@ -107,7 +143,7 @@ export default function LoginPage({ onLoggedIn }) {
 
           {error && <p className="error">{error}</p>}
 
-          <button id="login-submit" type="submit" disabled={loading || !username || !password}>
+          <button id="login-submit" type="submit" disabled={loading || !email || !password}>
             {loading ? 'Please wait...' : isSignUp ? 'Create Account' : 'Sign In'}
           </button>
         </form>
