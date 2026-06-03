@@ -12,6 +12,10 @@ import { defineConfig, devices } from '@playwright/test'
 // run with:  npx playwright test     (from the client/ directory)
 export default defineConfig({
   testDir: './e2e',
+  // e2e specs are named *.e2e.js (not *.spec.js) so vitest's default glob
+  // doesn't try to run them as unit tests - vitest and playwright stay in
+  // their own lanes without touching the shared vite.config.js.
+  testMatch: '**/*.e2e.js',
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
