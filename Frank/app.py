@@ -11,6 +11,7 @@ from models import (
     create_missing_indexes,
     migrate_users_schema,
     migrate_documents_project_id,
+    migrate_commits_schema,
 )
 
 
@@ -39,6 +40,7 @@ def create_app():
         migrate_users_schema()
         db.create_all()
         create_missing_indexes()
+        migrate_commits_schema()
         migrate_documents_project_id()
         _seed_default_user()
 
