@@ -3,12 +3,28 @@ import re
 import uuid
 
 import bcrypt
-from flask import Blueprint, jsonify, request, session, send_from_directory, current_app
+import requests as http_requests
+from authlib.integrations.flask_client import OAuth
+from flask import Blueprint, jsonify, redirect, request, session, send_from_directory, current_app
 from werkzeug.utils import secure_filename
 
 from models import db, User
 
 auth_bp = Blueprint("auth", __name__)
+oauth = OAuth()
+
+
+def init_oauth(app):
+    """Register the Google OAuth client. Call this once from app.py."""
+    oauth.init_app(app)
+    oauth.register(
+        name="google",
+        client_id=app.config.get("GOOGLE_CLIENT_ID"),
+        client_secret=app.config.get("GOOGLE_CLIENT_SECRET"),
+        server_metadata_url="https://accounts.google.com/.well-known/openid-configuration",
+        client_kwargs={"scope": "openid email profile"},
+    )
+
 
 EMAIL_RE = re.compile(r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$")
 NAME_RE = re.compile(r"^[a-zA-Z\s'-]+$")
@@ -185,3 +201,60 @@ def serve_profile_picture(user_id):
         return jsonify({"error": "No profile picture found"}), 404
 
     return send_from_directory(_uploads_dir(), target_user.profile_picture)
+
+
+@auth_bp.route("/auth/google/login", methods=["GET"])
+def google_login():
+    """Redirect the user to Google's OAuth consent screen."""
+    redirect_uri = current_app.config.get(
+        "GOOGLE_REDIRECT_URI", "http://localhost:5000/api/auth/google/callback"
+    )
+    return oauth.google.authorize_redirect(redirect_uri)
+
+
+@auth_bp.route("/auth/google/callback", methods=["GET"])
+def google_callback():
+    """Handle the OAuth callback from Google.
+
+    - Exchange the authorization code for tokens.
+    - Fetch the user's profile from Google.
+    - Find an existing user by google_id or email; create one if needed.
+    - Set the session and redirect back to the React frontend.
+    """
+    try:
+        token = oauth.google.authorize_access_token()
+    except Exception:
+        return redirect("http://localhost:5173/?error=oauth_failed")
+
+    userinfo = token.get("userinfo") or {}
+    google_id = userinfo.get("sub")
+    email = (userinfo.get("email") or "").lower()
+    first_name = userinfo.get("given_name", "")
+    last_name = userinfo.get("family_name", "")
+
+    if not google_id or not email:
+        return redirect("http://localhost:5173/?error=oauth_missing_info")
+
+    # 1. Try to find by Google ID first (returning user who logged in via Google before)
+    user = User.query.filter_by(google_id=google_id).first()
+
+    if user is None:
+        # 2. Try to find by email (existing account created with email/password)
+        user = User.query.filter(db.func.lower(User.email) == email).first()
+        if user is not None:
+            # Link Google ID to the existing account
+            user.google_id = google_id
+        else:
+            # 3. Brand-new user — create an account
+            user = User(
+                email=email,
+                first_name=first_name,
+                last_name=last_name,
+                google_id=google_id,
+                # hashed_password is None — OAuth-only users don't have a password
+            )
+            db.session.add(user)
+
+    db.session.commit()
+    session["user_id"] = user.id
+    return redirect("http://localhost:5173/")

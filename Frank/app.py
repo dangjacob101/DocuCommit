@@ -25,7 +25,7 @@ def create_app():
     from routes.documents import documents_bp
     from routes.branches import branches_bp
     from routes.merge import merge_bp
-    from routes.auth import auth_bp
+    from routes.auth import auth_bp, init_oauth
     from routes.projects import projects_bp
 
     app.register_blueprint(documents_bp, url_prefix='/api')
@@ -33,6 +33,8 @@ def create_app():
     app.register_blueprint(merge_bp, url_prefix='/api')
     app.register_blueprint(auth_bp, url_prefix='/api')
     app.register_blueprint(projects_bp, url_prefix='/api')
+
+    init_oauth(app)
 
     with app.app_context():
         migrate_users_schema()
