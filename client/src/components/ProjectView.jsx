@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { getProject, listBranches, updateDocument } from '../api.js'
+import { getProject, listBranches, updateDocument, deleteDocument } from '../api.js'
 import { slugify } from '../utils.js'
 
 export default function ProjectView() {
@@ -62,6 +62,19 @@ export default function ProjectView() {
     }
   }
 
+  async function handleDelete(doc) {
+    if (!confirm(`Delete "${doc.title}"? This cannot be undone.`)) return
+    try {
+      await deleteDocument(doc.id)
+      setProject({
+        ...project,
+        documents: project.documents.filter(d => d.id !== doc.id)
+      })
+    } catch (e) {
+      alert(`Delete failed: ${e.message}`)
+    }
+  }
+
   if (loading) return <p className="muted">Loading...</p>
   if (error) return (
     <div className="error error-row">
@@ -118,6 +131,13 @@ export default function ProjectView() {
                     title="Rename document"
                   >
                     ✎
+                  </button>
+                  <button
+                    className="pencil-btn"
+                    onClick={() => handleDelete(d)}
+                    title="Delete document"
+                  >
+                    ✕
                   </button>
                 </div>
               </>
