@@ -84,7 +84,7 @@ All backend routes are mounted under `/api`. Most document routes require a logg
 ## Architecture & Design
 
 ### Database UML Class Diagram
-DocuCommit relies on a highly relational data model to translate Git-style version control concepts into a robust backend architecture. The following UML diagram illustrates the Code/Data view of the SQLAlchemy models:
+This is the **structural view** of the system. DocuCommit uses a highly relational model to translate Git concepts into the backend: a `User` owns `Project`s and `Document`s, each `Document` has `Branch`es, and each `Branch` is an ordered chain of `Commit`s. Crucially, a branch stores only `diff_patch` deltas (plus a human-readable `plain_text_patch`) and a `branched_from` reference — never a full copy — which is what keeps branches isolated from Main. The composition arrows (`*--`) map directly to the cascade-delete rules in `models.py`.
 
 ```mermaid
 classDiagram
@@ -137,14 +137,14 @@ classDiagram
 ```
 
 ### Version Control Workflow
-The most complex feature in DocuCommit is the diffing engine. The following sequence diagram visualizes the Behavioral View of how the React client, Flask API, Diff Engine, and SQLite database interact to generate and store a revision patch.
+This is the **behavioral view** of the same system — the runtime call path behind the structure above. When a user saves a revision, the React/TipTap client POSTs to the Flask API, which reconstructs the branch's prior state by replaying its commits, calls the diff engine (`make_diff` in `diff_engine.py` and `make_plain_text_diff` in `utils.py`) to compute both a machine patch and a human-readable patch, then persists them to SQLite. The two diagrams are consistent: every participant below is a class or module from the UML above.
 
 ```mermaid
 sequenceDiagram
     actor User
     participant React as Frontend (React/TipTap)
     participant Flask as Backend (Flask API)
-    participant Engine as Diff Engine (utils.py)
+    participant Engine as Diff Engine (diff_engine.py + utils.py)
     participant DB as SQLite Database
 
     User->>React: Types in Editor & Clicks "Save Revision"
