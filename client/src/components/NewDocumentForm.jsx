@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { createDocument, listBranches } from '../api.js'
 import { slugify } from '../utils.js'
+import RichEditor from './RichEditor.jsx'
 
 export default function NewDocumentForm() {
   const { projectSlug, projectId } = useParams()
@@ -46,16 +47,16 @@ export default function NewDocumentForm() {
             autoFocus
           />
         </label>
-        <label>
-          Initial text
-          <textarea
-            className="editor"
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            rows={14}
-            placeholder="Start typing the document..."
-          />
-        </label>
+        <div style={{ marginBottom: '16px' }}>
+          <label style={{ display: 'block', marginBottom: '8px' }}>Initial text</label>
+          <div style={{ minHeight: '350px' }}>
+            <RichEditor
+              content={content}
+              onUpdate={setContent}
+              placeholder="Start typing the document..."
+            />
+          </div>
+        </div>
         {error && <p className="error">{error}</p>}
         <div className="row end">
           <button type="button" onClick={() => navigate(cancelTo)} disabled={saving}>
