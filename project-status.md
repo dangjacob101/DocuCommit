@@ -61,6 +61,12 @@ Fully implemented title search bar on `DocumentDashboard` backed by a `?q=` filt
 
 ---
 
+### Architecture Diagrams (2+) in README — 100 pts
+
+The README contains a UML Class Diagram showing the database composition, and a Sequence Diagram showing the custom visual diff and safe merge workflow, utilizing Mermaid.js.
+
+---
+
 ## In Progress
 
 ### Visually Pleasing & Easy to Navigate — 50 pts
@@ -88,17 +94,7 @@ We have implemented 7 distinct features, which more than satisfies the "three di
 
 Currently covers project description, user stories, milestones, setup instructions, and architecture diagrams.
 
----
 
-## Not Started
-
----
-
-### Architecture Diagrams (2+) in README — 100 pts
-
-The README contains a UML Class Diagram showing the database composition, and a Sequence Diagram showing the custom visual diff and safe merge workflow, utilizing Mermaid.js.
-
----
 
 ## Summary
 
