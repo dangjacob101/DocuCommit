@@ -81,6 +81,94 @@ All backend routes are mounted under `/api`. Most document routes require a logg
 | `GET` | `/api/branches/:id/diff` | optional `?w=1` | Compares the branch to Main. `w=1` ignores whitespace-only changes. |
 | `POST` | `/api/branches/:id/merge` | none | Merges an active branch into Main when Main has not diverged. |
 
+## Architecture & Design
+
+### Database UML Class Diagram
+DocuCommit relies on a highly relational data model to translate Git-style version control concepts into a robust backend architecture. The following UML diagram illustrates the Code/Data view of the SQLAlchemy models:
+
+```mermaid
+classDiagram
+    %% Composition: The existence of the child depends on the parent (Cascade Deletes)
+    User *-- Project : owns
+    User *-- Document : creates
+    Project *-- Document : contains
+    Document *-- Branch : has
+    Branch *-- Commit : contains
+    
+    %% Navigable Association: Branch holds a reference to a specific base Commit
+    Branch --> Commit : branched_from
+
+    class User {
+        -id: int
+        -email: string
+        -first_name: string
+        -last_name: string
+        -google_id: string
+    }
+    
+    class Project {
+        -id: int
+        -name: string
+        -owner_id: int
+    }
+    
+    class Document {
+        -id: int
+        -title: string
+        -owner_id: int
+        -project_id: int
+    }
+    
+    class Branch {
+        -id: int
+        -name: string
+        -is_main: boolean
+        -status: string
+        -branched_from_commit_id: int
+    }
+    
+    class Commit {
+        -id: int
+        -message: string
+        -diff_patch: text
+        -plain_text_patch: text
+        -branch_id: int
+    }
+```
+
+### Version Control Workflow
+The most complex feature in DocuCommit is the diffing engine. The following sequence diagram visualizes the Behavioral View of how the React client, Flask API, Diff Engine, and SQLite database interact to generate and store a revision patch.
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant React as Frontend (React/TipTap)
+    participant Flask as Backend (Flask API)
+    participant Engine as Diff Engine (utils.py)
+    participant DB as SQLite Database
+
+    User->>React: Types in Editor & Clicks "Save Revision"
+    React->>Flask: POST /api/branches/:id/commits (JSON)
+    
+    Flask->>DB: Fetch previous branch commits
+    DB-->>Flask: List of past patches
+    
+    Flask->>Engine: Reconstruct previous document state
+    Engine-->>Flask: Old TipTap JSON State
+    
+    Flask->>Engine: make_diff(Old JSON, New JSON)
+    Engine-->>Flask: Raw JSON Diff Patch
+    
+    Flask->>Engine: make_plain_text_diff(Old Text, New Text)
+    Engine-->>Flask: Human-readable Diff Patch
+    
+    Flask->>DB: INSERT INTO commits (diff_patch, plain_text_patch)
+    DB-->>Flask: Success
+    
+    Flask-->>React: 201 Created (Commit Metadata)
+    React-->>User: Updates Timeline UI
+```
+
 ## User Stories
 ### Must Have (Basically all the core version control logic)
 

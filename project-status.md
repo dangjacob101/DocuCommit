@@ -86,8 +86,7 @@ We have implemented 7 distinct features, which more than satisfies the "three di
 
 ### README File — 50 pts
 
-Currently covers project description, user stories, and milestones. Still missing:
-- Architecture diagrams (2 needed for most influential aspects of program)
+Currently covers project description, user stories, milestones, setup instructions, and architecture diagrams.
 
 ---
 
@@ -97,11 +96,7 @@ Currently covers project description, user stories, and milestones. Still missin
 
 ### Architecture Diagrams (2+) in README — 100 pts
 
-The README has no diagrams. We need at least two different diagram types, consistent with the codebase. Options:
-- ERD (`User`, `Document`, `Branch`, `Commit`)
-- System architecture (React → Flask API → SQLite)
-- Sequence diagram (create doc → branch → commit → diff → merge)
-- Frontend component tree
+The README contains a UML Class Diagram showing the database composition, and a Sequence Diagram showing the custom visual diff and safe merge workflow, utilizing Mermaid.js.
 
 ---
 
@@ -115,16 +110,15 @@ The README has no diagrams. We need at least two different diagram types, consis
 | Code readability | 100 | Done |
 | Visually pleasing | 50 | In progress |
 | Three distinct features | 150 | Done |
-| README (run instructions + diagrams) | 50 | In progress |
+| README (run instructions + diagrams) | 50 | Done |
 | 2+ Playwright E2E tests | 100 | Done |
 | Authentication | 50 | Done |
 | Search | 50 | Done |
-| Architecture diagrams (2+) in README | 100 | Not started |
+| Architecture diagrams (2+) in README | 100 | Done |
 | **Total** | **850** | |
 
 ---
 
 ## Action Items
 
-1. Add architecture diagrams to the README
-2. Complete README with local setup instructions
+- Final polish and presentation prep.
