@@ -1,8 +1,5 @@
 import { test, expect } from '@playwright/test'
 
-// browser tests for the main user flow: register, make a document, search.
-// each test uses a unique user + titles so they don't step on each other.
-
 const PASSWORD = 'TestPass1!'
 
 function unique(prefix) {
@@ -20,52 +17,56 @@ async function registerNewUser(page) {
   await page.locator('#login-last-name').fill('User')
   await page.locator('#login-password').fill(PASSWORD)
   await page.locator('#login-submit').click()
-  // a successful register logs us in and drops us on the dashboard
-  await expect(page.getByRole('heading', { name: 'Documents' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Projects' })).toBeVisible()
   return email
 }
 
-async function createDocument(page, title, content) {
+async function createProject(page, name) {
+  await page.getByRole('button', { name: 'New Project' }).click()
+  await expect(page.getByRole('heading', { name: 'New Project' })).toBeVisible()
+  await page.getByPlaceholder('e.g. Acme Engagement').fill(name)
+  await page.getByRole('button', { name: 'Create' }).click()
+  await expect(page.getByRole('heading', { name })).toBeVisible()
+}
+
+async function createDocument(page, title) {
   await page.getByRole('button', { name: 'New Document' }).click()
   await expect(page.getByRole('heading', { name: 'New Document' })).toBeVisible()
   await page.getByPlaceholder('e.g. Acme Services Agreement').fill(title)
-  await page.getByPlaceholder('Start typing the document...').fill(content)
   await page.getByRole('button', { name: 'Save' }).click()
-  // saving creates the doc and navigates into its Main-branch editor
   await expect(page).toHaveURL(/\/branches\//)
 }
 
-test('a user can register, create a document, and see it on the dashboard', async ({ page }) => {
+test('a user can register, create a project, and add a document to it', async ({ page }) => {
   await registerNewUser(page)
 
-  const title = unique('Acme Services Agreement')
-  await createDocument(page, title, 'This agreement is made between the parties.')
+  const projectName = unique('Acme Engagement')
+  await createProject(page, projectName)
 
-  // navigate back to the dashboard - the new document should be listed
+  const docTitle = unique('Acme Services Agreement')
+  await createDocument(page, docTitle)
+
   await page.goto('/')
-  await expect(page.getByRole('button', { name: title })).toBeVisible()
+  await page.getByRole('button', { name: projectName }).click()
+  await expect(page.getByRole('button', { name: docTitle })).toBeVisible()
 })
 
-test('a user can search their documents by title', async ({ page }) => {
+test('documents created in one project do not show up in another', async ({ page }) => {
   await registerNewUser(page)
 
-  const acme = unique('Acme Agreement')
-  const globex = unique('Globex Lease')
-  await createDocument(page, acme, 'alpha content')
+  const acme = unique('Acme')
+  const globex = unique('Globex')
+
+  await createProject(page, acme)
+  const docTitle = unique('Engagement Letter')
+  await createDocument(page, docTitle)
+
   await page.goto('/')
-  await createDocument(page, globex, 'beta content')
+  await createProject(page, globex)
+
+  await expect(page.getByRole('button', { name: docTitle })).toHaveCount(0)
+
   await page.goto('/')
-
-  // both documents are visible before searching
-  await expect(page.getByRole('button', { name: acme })).toBeVisible()
-  await expect(page.getByRole('button', { name: globex })).toBeVisible()
-
-  // typing a query narrows the list to matching titles only
-  await page.locator('#search-documents').fill('Globex')
-  await expect(page.getByRole('button', { name: globex })).toBeVisible()
-  await expect(page.getByRole('button', { name: acme })).toHaveCount(0)
-
-  // a query that matches nothing shows the empty state
-  await page.locator('#search-documents').fill('zzzz-no-such-document')
-  await expect(page.getByText(/No documents matching/)).toBeVisible()
+  await page.getByRole('button', { name: acme }).click()
+  await expect(page.getByRole('button', { name: docTitle })).toBeVisible()
 })

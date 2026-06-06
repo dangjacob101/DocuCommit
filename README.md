@@ -53,21 +53,36 @@ All backend routes are mounted under `/api`. Most document routes require a logg
 
 | Method | Route | Body | Notes |
 | --- | --- | --- | --- |
-| `POST` | `/api/auth/register` | `{ "username": "...", "password": "..." }` | Creates an account and logs the user in. |
-| `POST` | `/api/auth/login` | `{ "username": "...", "password": "..." }` | Starts a session. |
+| `POST` | `/api/auth/register` | `{ "email": "...", "first_name": "...", "last_name": "...", "password": "..." }` | Creates an account and logs the user in. |
+| `POST` | `/api/auth/login` | `{ "email": "...", "password": "..." }` | Starts a session. |
 | `POST` | `/api/auth/logout` | none | Ends the current session. |
 | `GET` | `/api/auth/me` | none | Returns the current logged-in user. |
+| `POST` | `/api/auth/profile-picture` | multipart `file` | Uploads a PNG/JPG/GIF/WebP under 5 MB. |
+| `GET` | `/api/auth/profile-picture/:user_id` | none | Returns a user's profile picture. |
+| `GET` | `/api/auth/google/login` | none | Starts the Google OAuth flow. |
+| `GET` | `/api/auth/google/callback` | none | OAuth callback; resolves to a session. |
 
-### Documents
+### Projects
 
 | Method | Route | Body | Notes |
 | --- | --- | --- | --- |
-| `GET` | `/api/documents` | none | Lists the current user's documents. |
-| `POST` | `/api/documents` | `{ "title": "...", "content": "..." }` | Creates a document and its `Main` branch. |
+| `GET` | `/api/projects` | none | Lists the current user's projects. |
+| `POST` | `/api/projects` | `{ "name": "..." }` | Creates a project owned by the current user. |
+| `GET` | `/api/projects/:id` | none | Gets one project with its documents. |
+| `PATCH` | `/api/projects/:id` | `{ "name": "..." }` | Renames a project. |
+| `DELETE` | `/api/projects/:id` | none | Deletes a project and all of its documents. |
+
+### Documents
+
+| Method | Route | Body / Query | Notes |
+| --- | --- | --- | --- |
+| `GET` | `/api/documents` | optional `?q=` | Lists the current user's documents. `q` filters by title (case-insensitive). |
+| `POST` | `/api/documents` | `{ "title": "...", "content": "...", "project_id": 1 }` | Creates a document and its `Main` branch. `project_id` is optional; defaults to the user's first project. |
 | `GET` | `/api/documents/:id` | none | Gets one document with current Main content. |
 | `PUT` | `/api/documents/:id` | `{ "title": "...", "content": "..." }` | Updates the title and optionally commits new Main content. |
 | `DELETE` | `/api/documents/:id` | none | Deletes a document and its branches/commits. |
 | `GET` | `/api/documents/:id/commits` | none | Lists commits across all branches for the document. |
+| `GET` | `/api/documents/:id/export` | none | Downloads the current Main as a `.docx` file. |
 
 ### Branches, Commits, and Merge
 
@@ -79,7 +94,8 @@ All backend routes are mounted under `/api`. Most document routes require a logg
 | `GET` | `/api/branches/:id/commits` | none | Lists commits on a branch. |
 | `POST` | `/api/branches/:id/commits` | `{ "message": "...", "content": "..." }` | Saves a revision if the content changed. |
 | `GET` | `/api/branches/:id/diff` | optional `?w=1` | Compares the branch to Main. `w=1` ignores whitespace-only changes. |
-| `POST` | `/api/branches/:id/merge` | none | Merges an active branch into Main when Main has not diverged. |
+| `GET` | `/api/branches/:id/merge/preview` | none | Previews a merge: returns base, Main, and branch text plus per-chunk progression. |
+| `POST` | `/api/branches/:id/merge` | optional `{ "resolutions": [...] }` | Merges an active branch into Main. Sends `resolutions` when Main has diverged. |
 
 ## Architecture & Design
 
