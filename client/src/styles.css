@@ -57,7 +57,51 @@ header h1 {
 .profile-menu {
   position: relative;
 }
+/* [GenAI Use] Prompt: Add a smooth hover interaction ot the profile picture button.
+                       I want the hover to animate the border color a viabrat purple with a semi-transparent
+                       outline to create a glow effect. 
+                       Here is my current code:
+                       .profile-avatar-btn {
+                         width: 36px;
+                         height: 36px;
+                         border-radius: 50%;
+                         border: 2px solid var(--border);
+                         padding: 0;
+                         cursor: pointer;
+                         overflow: hidden;
+                         background: linear-gradient(135deg, #6366f1, #8b5cf6);
+                         display: flex;
+                         align-items: center;
+                         justify-content: center;
+                       }
 
+LLM Response Start: 
+___________________________________________________________
+.profile-avatar-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  padding: 0;
+  cursor: pointer;
+  overflow: hidden;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.profile-avatar-btn:hover {
+  border-color: #8b5cf6;
+  box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.2);
+}
+___________________________________________________________
+LLM Response End
+
+Reflection: I looked through the code and it seems to be good. It added a small amount of code, in a part that
+            I was unfamiliar with. Moreover, it runs perfectly fine without any errors or security issues added.
+*/
 .profile-avatar-btn {
   width: 36px;
   height: 36px;
