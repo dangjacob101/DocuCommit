@@ -1,268 +1,241 @@
 # DocuCommit
 
-**TLDR:** Semantic version control for documents (Google Docs, Word, etc.), specifically targeting the legal sector.
+[![CI](https://github.com/dangjacob101/DocuCommit/actions/workflows/ci.yml/badge.svg)](https://github.com/dangjacob101/DocuCommit/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-## Project Description
+Version control for rich-text documents, presented through a workflow designed
+for people who do not use Git.
 
-DocuCommit is a web-based platform that brings the power of Git-style version control (branching, committing, and merging) to plain-text legal contracts and policy documents. It translates complex version control concepts into a highly visual, non-technical interface suitable for lawyers, local government clerks, and standard-setting organizations.
+DocuCommit lets a user organize documents into projects, create isolated
+branches, save named revisions, compare a branch with Main, and merge changes
+through a visual conflict-resolution flow. It was developed as a UCLA CS 35L
+team project with legal and policy-document workflows in mind.
 
-Launching software in this space would be interesting since it shifts the paradigm away from sending emails with chaotic "Contract_LawyerOne_Final_Edit_v10.docx" to a more structured DAG of the document history. Moreover, it would allow for easier review of changes to the document, specifically reducing the time that more senior members of the team review the changes made by interns or junior-level coworkers. From a technical perspective, it presents a fantastic software engineering challenge: building a robust Python backend to calculate text diffs, manage parallel document states, and resolve merge conflicts, paired with a dynamic React frontend to visualize the document tree.
+> [!NOTE]
+> DocuCommit is an educational prototype, not a production document-management
+> service. Do not use it to store confidential or legally privileged material.
 
-## Local Setup Instructions
+## Features
 
-To get the application running on your local machine, you'll need to boot up both the backend (Flask) and frontend (React/Vite).
+- **Document history:** revisions are stored as unified-diff patches and
+  reconstructed by replaying the commit chain.
+- **Isolated branches:** users can explore edits without modifying Main.
+- **Visual comparison:** line-level and word-level diffs highlight additions,
+  removals, and modifications, with an option to ignore whitespace.
+- **Three-way merge:** divergent edits are classified as automatic changes or
+  conflicts, and conflicts can be resolved from Main, the branch, or custom
+  text.
+- **Rich-text editing:** the TipTap editor supports headings, lists, bold,
+  italic, underline, and font sizing.
+- **Project organization:** documents are grouped into user-owned workspaces
+  with title search and revision history.
+- **Authentication and export:** email/password authentication, optional Google
+  OAuth, profile images, and DOCX export are supported.
 
-### 1. Backend Setup
+## Architecture
 
-The backend requires a `.env` file in the `Frank/` directory to manage its configuration. You can copy the provided `.env.example` file to get started:
+The React client talks to a Flask JSON API. SQLAlchemy persists users, projects,
+documents, branches, and commits in SQLite for local development. The custom
+diff and merge engines are independent Python modules, which keeps their core
+algorithms testable without HTTP or database setup.
 
-```bash
-cd Frank
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-cp .env.example .env
-flask run
+```mermaid
+flowchart LR
+    Browser["React + TipTap client"]
+    API["Flask API"]
+    Diff["Myers diff engine"]
+    Merge["Three-way merge engine"]
+    DB[("SQLite / SQLAlchemy")]
+    Export["DOCX generator"]
+
+    Browser <--> API
+    API <--> Diff
+    API <--> Merge
+    API <--> DB
+    API --> Export
 ```
 
-#### Environment Variables Reference
-
-When you copy `.env.example` to `.env`, you will see the following configuration keys (actual secret values are omitted here for security):
-
-- **`DATABASE_URL`**: The connection string for the database (defaults to a local SQLite file for development).
-- **`SECRET_KEY`**: Used by Flask for cryptographic operations and session security. In a development environment, any random string will work.
-- **`DEBUG`**: Set to `true` to enable Flask's debug mode and hot-reloading during development.
-
-### 2. Frontend Setup
-
-Open a new terminal window:
-
-```bash
-cd client
-npm install
-npm run dev
-```
-
-Both services will start, and the frontend terminal will provide a `localhost` URL to access DocuCommit in your browser.
-
-## API Documentation
-
-All backend routes are mounted under `/api`. Most document routes require a logged-in session; use the auth endpoints first when testing with curl, Postman, or the React app.
-
-### Auth
-
-| Method | Route | Body | Notes |
-| --- | --- | --- | --- |
-| `POST` | `/api/auth/register` | `{ "email": "...", "first_name": "...", "last_name": "...", "password": "..." }` | Creates an account and logs the user in. |
-| `POST` | `/api/auth/login` | `{ "email": "...", "password": "..." }` | Starts a session. |
-| `POST` | `/api/auth/logout` | none | Ends the current session. |
-| `GET` | `/api/auth/me` | none | Returns the current logged-in user. |
-| `POST` | `/api/auth/profile-picture` | multipart `file` | Uploads a PNG/JPG/GIF/WebP under 5 MB. |
-| `GET` | `/api/auth/profile-picture/:user_id` | none | Returns a user's profile picture. |
-| `GET` | `/api/auth/google/login` | none | Starts the Google OAuth flow. |
-| `GET` | `/api/auth/google/callback` | none | OAuth callback; resolves to a session. |
-
-### Projects
-
-| Method | Route | Body | Notes |
-| --- | --- | --- | --- |
-| `GET` | `/api/projects` | none | Lists the current user's projects. |
-| `POST` | `/api/projects` | `{ "name": "..." }` | Creates a project owned by the current user. |
-| `GET` | `/api/projects/:id` | none | Gets one project with its documents. |
-| `PATCH` | `/api/projects/:id` | `{ "name": "..." }` | Renames a project. |
-| `DELETE` | `/api/projects/:id` | none | Deletes a project and all of its documents. |
-
-### Documents
-
-| Method | Route | Body / Query | Notes |
-| --- | --- | --- | --- |
-| `GET` | `/api/documents` | optional `?q=` | Lists the current user's documents. `q` filters by title (case-insensitive). |
-| `POST` | `/api/documents` | `{ "title": "...", "content": "...", "project_id": 1 }` | Creates a document and its `Main` branch. `project_id` is optional; defaults to the user's first project. |
-| `GET` | `/api/documents/:id` | none | Gets one document with current Main content. |
-| `PUT` | `/api/documents/:id` | `{ "title": "...", "content": "..." }` | Updates the title and optionally commits new Main content. |
-| `DELETE` | `/api/documents/:id` | none | Deletes a document and its branches/commits. |
-| `GET` | `/api/documents/:id/commits` | none | Lists commits across all branches for the document. |
-| `GET` | `/api/documents/:id/export` | none | Downloads the current Main as a `.docx` file. |
-
-### Branches, Commits, and Merge
-
-| Method | Route | Body / Query | Notes |
-| --- | --- | --- | --- |
-| `GET` | `/api/documents/:id/branches` | none | Lists branches for a document. |
-| `POST` | `/api/documents/:id/branches` | `{ "name": "...", "source_branch_id": 1 }` | Creates a branch. `source_branch_id` is optional. |
-| `GET` | `/api/branches/:id` | none | Gets one branch and its reconstructed content. |
-| `GET` | `/api/branches/:id/commits` | none | Lists commits on a branch. |
-| `POST` | `/api/branches/:id/commits` | `{ "message": "...", "content": "..." }` | Saves a revision if the content changed. |
-| `GET` | `/api/branches/:id/diff` | optional `?w=1` | Compares the branch to Main. `w=1` ignores whitespace-only changes. |
-| `GET` | `/api/branches/:id/merge/preview` | none | Previews a merge: returns base, Main, and branch text plus per-chunk progression. |
-| `POST` | `/api/branches/:id/merge` | optional `{ "resolutions": [...] }` | Merges an active branch into Main. Sends `resolutions` when Main has diverged. |
-
-## Architecture & Design
-
-### Database UML Class Diagram
-This is the **structural view** of the system. DocuCommit uses a highly relational model to translate Git concepts into the backend: a `User` owns `Project`s and `Document`s, each `Document` has `Branch`es, and each `Branch` is an ordered chain of `Commit`s. Crucially, a branch stores only `diff_patch` deltas (plus a human-readable `plain_text_patch`) and a `branched_from` reference — never a full copy — which is what keeps branches isolated from Main. The composition arrows (`*--`) map directly to the cascade-delete rules in `models.py`.
+### Data model
 
 ```mermaid
 classDiagram
-    %% Composition: The existence of the child depends on the parent (Cascade Deletes)
-    User *-- Project : owns
-    User *-- Document : creates
-    Project *-- Document : contains
-    Document *-- Branch : has
-    Branch *-- Commit : contains
-    
-    %% Navigable Association: Branch holds a reference to a specific base Commit
-    Branch --> Commit : branched_from
+    User "1" --> "*" Project : owns
+    User "1" --> "*" Document : creates
+    Project "1" --> "*" Document : contains
+    Document "1" --> "*" Branch : has
+    Branch "1" --> "*" Commit : records
+    Branch --> Commit : branched from
 
     class User {
-        -id: int
-        -email: string
-        -first_name: string
-        -last_name: string
-        -google_id: string
+        int id
+        string email
+        string first_name
+        string last_name
     }
-    
+
     class Project {
-        -id: int
-        -name: string
-        -owner_id: int
+        int id
+        string name
+        int owner_id
     }
-    
+
     class Document {
-        -id: int
-        -title: string
-        -owner_id: int
-        -project_id: int
+        int id
+        string title
+        int owner_id
+        int project_id
     }
-    
+
     class Branch {
-        -id: int
-        -name: string
-        -is_main: boolean
-        -status: string
-        -branched_from_commit_id: int
+        int id
+        string name
+        bool is_main
+        int branched_from_commit_id
     }
-    
+
     class Commit {
-        -id: int
-        -message: string
-        -diff_patch: text
-        -plain_text_patch: text
-        -branch_id: int
+        int id
+        string message
+        text diff_patch
+        text plain_text_patch
+        int branch_id
     }
 ```
 
-### Version Control Workflow
-This is the **behavioral view** of the same system — the runtime call path behind the structure above. When a user saves a revision, the React/TipTap client POSTs to the Flask API, which reconstructs the branch's prior state by replaying its commits, calls the diff engine (`make_diff` in `diff_engine.py` and `make_plain_text_diff` in `utils.py`) to compute both a machine patch and a human-readable patch, then persists them to SQLite. The two diagrams are consistent: every participant below is a class or module from the UML above.
+### Revision flow
 
-```mermaid
-sequenceDiagram
-    actor User
-    participant React as Frontend (React/TipTap)
-    participant Flask as Backend (Flask API)
-    participant Engine as Diff Engine (diff_engine.py + utils.py)
-    participant DB as SQLite Database
+1. The client sends updated TipTap JSON to a branch commit endpoint.
+2. The backend reconstructs the branch's current state by replaying its patches.
+3. The Myers diff engine computes the new machine-readable and human-readable
+   deltas.
+4. SQLAlchemy stores the deltas as the next commit in that branch.
+5. For a merge, the backend reconstructs the branch point, Main, and the
+   incoming branch before running the three-way merge engine.
 
-    User->>React: Types in Editor & Clicks "Save Revision"
-    React->>Flask: POST /api/branches/:id/commits (JSON)
-    
-    Flask->>DB: Fetch previous branch commits
-    DB-->>Flask: List of past patches
-    
-    Flask->>Engine: Reconstruct previous document state
-    Engine-->>Flask: Old TipTap JSON State
-    
-    Flask->>Engine: make_diff(Old JSON, New JSON)
-    Engine-->>Flask: Raw JSON Diff Patch
-    
-    Flask->>Engine: make_plain_text_diff(Old Text, New Text)
-    Engine-->>Flask: Human-readable Diff Patch
-    
-    Flask->>DB: INSERT INTO commits (diff_patch, plain_text_patch)
-    DB-->>Flask: Success
-    
-    Flask-->>React: 201 Created (Commit Metadata)
-    React-->>User: Updates Timeline UI
+## Technology
+
+| Layer | Technologies |
+| --- | --- |
+| Frontend | React, Vite, TipTap, React Router |
+| Backend | Python, Flask, SQLAlchemy |
+| Storage | SQLite locally; configurable through `DATABASE_URL` |
+| Algorithms | Custom Myers O(ND) diff and three-way merge engines |
+| Testing | Python integration tests, Vitest, Testing Library, Playwright |
+
+## Quick start
+
+### Prerequisites
+
+- Python 3.9 or newer
+- Node.js 20.19 or newer
+- GNU Make
+
+### Install
+
+```bash
+git clone https://github.com/dangjacob101/DocuCommit.git
+cd DocuCommit
+make install
+cp Frank/.env.example Frank/.env
 ```
 
-## User Stories
-### Must Have (Basically all the core version control logic)
+Replace the development `SECRET_KEY` in `Frank/.env` before starting the
+backend. Google OAuth variables are optional; email/password registration works
+without them.
 
-**Document Initialization**
+### Run
 
-- **Story:** As a user, I want to create a new "Main" document repository so that I have a base text to start drafting my contract.
-- **Acceptance Criteria:**
-  - The user can click "New Document", input a title, and type initial text into an editor.
-  - Upon saving, the backend creates a "Main" branch with an initial commit timestamp.
-  - The document appears in the user's dashboard.
+Start the backend:
 
-**Branch Creation** (Depends on Story 1)
+```bash
+cd Frank
+./.venv/bin/flask --app app run
+```
 
-- **Story:** As a collaborator, I want to create a separate "Branch" of the document so that I can draft experimental clauses without altering the main contract.
-- **Acceptance Criteria:**
-  - While viewing a document, the user can click "New Branch" and provide a branch name (e.g., "Liability_Revision").
-  - The system creates an isolated copy of the text at that exact timestamp.
-  - Edits made in this branch do not affect the "Main" branch text.
+In a second terminal, start the client:
 
-**Committing Revisions** (Depends on Story 2)
+```bash
+cd client
+npm run dev
+```
 
-- **Story:** As a drafter, I want to save "Commits" (revisions) with a short descriptive message so that I have a chronological history of my specific changes.
-- **Acceptance Criteria:**
-  - After editing text in a branch, the user clicks "Save Revision" and is prompted for a brief message (e.g., "Updated payment terms").
-  - The backend saves the delta/diff of the text, not just a full duplicate file, appending it to the branch's history ledger.
+Open <http://localhost:5173> and create an account. The Vite development server
+proxies `/api` requests to Flask at <http://127.0.0.1:5000>.
 
-### Should Have (Important for collaboration and utility)
+### Configuration
 
-**Visual Diffing** (Depends on Story 3)
+| Variable | Required | Default | Purpose |
+| --- | --- | --- | --- |
+| `DATABASE_URL` | No | `sqlite:///documents.db` | SQLAlchemy database URL |
+| `SECRET_KEY` | Yes outside local development | `dev-secret-key` | Flask session signing |
+| `DEBUG` | No | `false` | Flask debug mode |
+| `GOOGLE_CLIENT_ID` | Only for Google OAuth | none | OAuth client ID |
+| `GOOGLE_CLIENT_SECRET` | Only for Google OAuth | none | OAuth client secret |
+| `GOOGLE_REDIRECT_URI` | No | local callback URL | OAuth callback override |
 
-- **Story:** As a reviewer, I want to visually compare my branch against the main document so that I can see exactly what words were added or removed.
-- **Acceptance Criteria:**
-  - The user can toggle a "Compare to Main" view.
-  - The React frontend renders the text comparison: newly added words are highlighted in green, and removed words are struck through and highlighted in red.
+## Tests
 
-**Diff API**
+The repository includes backend algorithm and API tests, frontend unit/component
+tests, and Playwright end-to-end flows.
 
-- `GET /api/branches/:id/diff` compares a branch against the document's Main branch.
-- The response includes branch/Main metadata, word-level diff chunks, add/remove/unchanged/modified counts, and an optional whitespace-ignore mode using `?w=1`.
+```bash
+make test          # backend + frontend tests
+make e2e           # browser tests
+make check         # backend, frontend, build, and browser checks
+```
 
-**Clean Merging** (Depends on Story 3 & 4)
+To run the health check without downloading or starting a browser:
 
-- **Story:** As a lead drafter, I want to merge a finalized branch back into the main document so that the official contract is updated.
-- **Acceptance Criteria:**
-  - If the "Main" branch has not been altered since the branch was created, clicking "Merge" successfully overwrites the Main text with the Branch text.
-  - The Branch is marked as "Merged" and archived.
+```bash
+SKIP_E2E=1 ./check_health.sh
+```
 
-### Nice to Have (More advanced functionality)
+GitHub Actions runs the same checks for pushes and pull requests.
 
-**Conflict Resolution UI** (Depends on Story 5)
+## API overview
 
-- **Story:** As a lead drafter, I want the system to alert me if someone else changed the main document while I was working on my branch, so I can manually choose which text to keep.
-- **Acceptance Criteria:**
-  - If the system detects overlapping edits during a merge, it halts the merge.
-  - A side-by-side UI appears showing "Current Main" vs. "Incoming Branch", forcing the user to click which block of text to accept before finalizing the merge.
+All endpoints are mounted under `/api`.
 
-**Formal Export**
+| Area | Representative endpoints |
+| --- | --- |
+| Authentication | `POST /auth/register`, `POST /auth/login`, `POST /auth/logout`, `GET /auth/me` |
+| Projects | `GET/POST /projects`, `GET/PATCH/DELETE /projects/:id` |
+| Documents | `GET/POST /documents`, `GET/PUT/DELETE /documents/:id`, `GET /documents/:id/export` |
+| Branches | `GET/POST /documents/:id/branches`, `GET /branches/:id` |
+| Revisions | `GET/POST /branches/:id/commits`, `GET /documents/:id/commits` |
+| Compare and merge | `GET /branches/:id/diff`, `GET /branches/:id/merge/preview`, `POST /branches/:id/merge` |
 
-- **Story:** As a lawyer, I want to export the current state of the main branch to a clean PDF so that I can send it to a client for physical signature.
-- **Acceptance Criteria:**
-  - A "Download PDF" button generates a cleanly formatted, print-ready document devoid of any version control UI elements.
+Most data endpoints require an authenticated session. The React client sends
+session cookies automatically.
 
-## Intermediate Milestones
+## Repository layout
 
-### Milestone 1: Environment & Core Data Models (Target: Week 4)
+```text
+DocuCommit/
+├── Frank/                  Flask API, data model, diff/merge engines, tests
+│   └── routes/             Resource-oriented API blueprints
+├── client/                 React application
+│   ├── e2e/                Playwright flows
+│   └── src/test/           Vitest and Testing Library tests
+├── .github/workflows/      Continuous integration
+├── Makefile                Common installation and verification commands
+└── check_health.sh         Local all-checks runner
+```
 
-- **Goal:** Establish the foundational architecture and implement User Story 1.
-- **Focus:** Setting up the frontend and backend repositories, configuring the database schema to handle document nodes, and building the basic text editor UI.
-- **Demonstration:** You can run the app locally, create a new document with some text, save it, and see it persist in the database upon page refresh.
+## Contributors
 
-### Milestone 2: The Version Control Engine (Target: Week 7)
+DocuCommit was built collaboratively. The following contributor accounts are
+recorded in the repository's Git history and GitHub contributor graph:
 
-- **Goal:** Implement the complex logic of branching, saving revisions, and calculating diffs, covering User Stories 2, 3, and 4.
-- **Focus:** Writing the Python backend logic that handles text deltas and building the React UI components that highlight those differences in red and green.
-- **Demonstration:** A user can create a document, branch off of it, make several tracked changes (commits) in the branch, and view a visual comparison of their edits against the original text.
+- [@robertpflores](https://github.com/robertpflores)
+- [@samsam324](https://github.com/samsam324)
+- [@dangjacob101](https://github.com/dangjacob101)
+- [@TheEpicElliott](https://github.com/TheEpicElliott)
+- [@derekk024](https://github.com/derekk024)
+- [@Jacob-Dang-05](https://github.com/Jacob-Dang-05)
 
-### Milestone 3: Merging & Final Polish (Target: Week 9 / End of Quarter)
+See the commit and pull-request history for feature-level attribution.
 
-- **Goal:** Complete the collaborative loop and prepare the project for final grading, covering User Story 5 (and Story 6/7 if time permits).
-- **Focus:** Ensuring the merge logic works flawlessly, polishing the UI/UX, fixing edge cases, and finalizing documentation.
-- **Demonstration:** The final presentation will showcase a complete workflow: creating a base contract, having two team members branch off to edit different clauses, reviewing the visual diffs, and seamlessly merging both branches back into a finalized main document.
+## License
+
+DocuCommit is available under the [MIT License](LICENSE).
