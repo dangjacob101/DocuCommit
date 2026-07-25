@@ -16,35 +16,26 @@ sys.path.insert(0, ".")
 
 from app import app  # noqa: E402
 from models import db  # noqa: E402
+from testing_helpers import register_test_user  # noqa: E402
 
 
 def fresh_client():
-    """wipe the test db, seed frank, and return a logged-in client."""
+    """Wipe the test database and return an authenticated client."""
     with app.app_context():
         db.drop_all()
         db.create_all()
-        from app import _seed_default_user
-        _seed_default_user()
     client = app.test_client()
-    r = client.post(
-        "/api/auth/login",
-        json={"email": "frank@docucommit.com", "password": "CS35LTeamprofile!"},
-    )
-    assert r.status_code == 200, f"login failed: {r.get_json()}"
+    register_test_user(client)
     return client
 
 
 def register_and_login(client, email, first_name="Test", last_name="User"):
-    r = client.post(
-        "/api/auth/register",
-        json={
-            "email": email,
-            "first_name": first_name,
-            "last_name": last_name,
-            "password": "TestPass1!",
-        },
+    register_test_user(
+        client,
+        email=email,
+        first_name=first_name,
+        last_name=last_name,
     )
-    assert r.status_code == 201, f"register failed: {r.get_json()}"
 
 
 def test_create_project():
@@ -66,7 +57,7 @@ def test_create_project_requires_name():
     print("PASS: create project requires non-empty name")
 
 
-def test_list_projects_includes_seeded_workspace():
+def test_list_projects_returns_user_projects():
     client = fresh_client()
     client.post("/api/projects", json={"name": "Acme"})
     client.post("/api/projects", json={"name": "Globex"})
@@ -155,7 +146,7 @@ if __name__ == "__main__":
     try:
         test_create_project()
         test_create_project_requires_name()
-        test_list_projects_includes_seeded_workspace()
+        test_list_projects_returns_user_projects()
         test_get_project_returns_documents_array()
         test_rename_project()
         test_delete_project_cascades_documents()

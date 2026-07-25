@@ -63,7 +63,7 @@ def get_current_user():
     user_id = session.get("user_id")
     if user_id is None:
         return None
-    return User.query.get(user_id)
+    return db.session.get(User, user_id)
 
 
 def _uploads_dir():
@@ -133,7 +133,11 @@ def login():
         db.func.lower(User.email) == email.lower()
     ).first()
 
-    if user is None or not _check_password(password, user.hashed_password):
+    if (
+        user is None
+        or not user.hashed_password
+        or not _check_password(password, user.hashed_password)
+    ):
         return jsonify({"error": "Invalid email or password"}), 401
 
     session["user_id"] = user.id
@@ -196,11 +200,15 @@ def upload_profile_picture():
 
 @auth_bp.route("/auth/profile-picture/<int:user_id>", methods=["GET"])
 def serve_profile_picture(user_id):
-    target_user = User.query.get(user_id)
-    if target_user is None or not target_user.profile_picture:
+    user = get_current_user()
+    if user is None:
+        return jsonify({"error": "authentication required"}), 401
+    if user.id != user_id:
+        return jsonify({"error": "access denied"}), 403
+    if not user.profile_picture:
         return jsonify({"error": "No profile picture found"}), 404
 
-    return send_from_directory(_uploads_dir(), target_user.profile_picture)
+    return send_from_directory(_uploads_dir(), user.profile_picture)
 
 
 @auth_bp.route("/auth/google/login", methods=["GET"])

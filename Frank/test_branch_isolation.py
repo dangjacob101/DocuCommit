@@ -24,6 +24,7 @@ sys.path.insert(0, ".")
 
 from app import app  # noqa: E402
 from models import db  # noqa: E402
+from testing_helpers import register_test_user  # noqa: E402
 
 
 # --- helpers ------------------------------------------------------------
@@ -33,14 +34,8 @@ def fresh_client():
     with app.app_context():
         db.drop_all()
         db.create_all()
-        from app import _seed_default_user
-        _seed_default_user()
     client = app.test_client()
-    r = client.post(
-        "/api/auth/login",
-        json={"email": "frank@docucommit.com", "password": "CS35LTeamprofile!"},
-    )
-    assert r.status_code == 200, f"fresh_client login failed: {r.get_json()}"
+    register_test_user(client)
     return client
 
 

@@ -9,6 +9,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 from app import create_app
 from models import db, Branch, Commit
 from docx import Document
+from testing_helpers import register_test_user
 
 
 class ExportRouteTest(unittest.TestCase):
@@ -19,15 +20,7 @@ class ExportRouteTest(unittest.TestCase):
         with self.app.app_context():
             db.drop_all()
             db.create_all()
-            from app import _seed_default_user
-            _seed_default_user()
-        self._login()
-
-    def _login(self):
-        self.client.post(
-            "/api/auth/login",
-            json={"email": "frank@docucommit.com", "password": "CS35LTeamprofile!"},
-        )
+        register_test_user(self.client)
 
     def tearDown(self):
         with self.app.app_context():

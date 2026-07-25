@@ -7,6 +7,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 
 from app import create_app
 from models import db, Branch, Commit
+from testing_helpers import register_test_user
 from utils import reconstruct_branch_content
 
 
@@ -18,15 +19,7 @@ class SafeMergeTest(unittest.TestCase):
         with self.app.app_context():
             db.drop_all()
             db.create_all()
-            from app import _seed_default_user
-            _seed_default_user()
-        self._login()
-
-    def _login(self):
-        self.client.post(
-            "/api/auth/login",
-            json={"email": "frank@docucommit.com", "password": "CS35LTeamprofile!"},
-        )
+        register_test_user(self.client)
 
     def tearDown(self):
         with self.app.app_context():
@@ -293,16 +286,11 @@ class SafeMergeTest(unittest.TestCase):
         doc = self._create_document("Hello")
         branch = self._create_branch(doc["id"])
         client = self.app.test_client()
-        r_reg = client.post(
-            "/api/auth/register",
-            json={
-                "email": "alice@docucommit.com",
-                "first_name": "Alice",
-                "last_name": "User",
-                "password": "CS35LTeamprofile2!",
-            },
+        register_test_user(
+            client,
+            email="alice@docucommit.com",
+            first_name="Alice",
         )
-        self.assertEqual(r_reg.status_code, 201)
 
         r1 = client.get(f"/api/branches/{branch['id']}/merge/preview")
         self.assertEqual(r1.status_code, 403)

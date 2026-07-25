@@ -14,6 +14,8 @@ team project with legal and policy-document workflows in mind.
 > [!NOTE]
 > DocuCommit is an educational prototype, not a production document-management
 > service. Do not use it to store confidential or legally privileged material.
+> See [SECURITY.md](SECURITY.md) for the access-control scope and legacy
+> database guidance.
 
 ## Features
 
