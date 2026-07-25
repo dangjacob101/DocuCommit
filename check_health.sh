@@ -70,6 +70,14 @@ log="$LOG_DIR/vitest.log"
 npm run test:run > "$log" 2>&1
 record "vitest unit/component suite" "$?" "$log"
 
+# --- frontend: production build ----------------------------------------
+section "frontend build (vite)"
+cd "$CLIENT" || exit 2
+
+log="$LOG_DIR/build.log"
+npm run build > "$log" 2>&1
+record "vite production build" "$?" "$log"
+
 # --- end-to-end: playwright browser tests ------------------------------
 section "end-to-end tests (playwright)"
 if [ "${SKIP_E2E:-0}" = "1" ]; then
