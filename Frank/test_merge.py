@@ -7,6 +7,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 
 from app import create_app  # noqa: E402
 from models import db, Branch, Commit  # noqa: E402
+from testing_helpers import register_test_user  # noqa: E402
 from utils import reconstruct_branch_content  # noqa: E402
 
 
@@ -18,18 +19,7 @@ class MergeRouteTest(unittest.TestCase):
         with self.app.app_context():
             db.drop_all()
             db.create_all()
-            # Re-seed the default user after wiping tables
-            from app import _seed_default_user
-            _seed_default_user()
-        # Log in so document routes pass auth
-        self._login()
-
-    def _login(self):
-        response = self.client.post(
-            "/api/auth/login",
-            json={"email": "frank@docucommit.com", "password": "CS35LTeamprofile!"},
-        )
-        self.assertEqual(response.status_code, 200)
+        register_test_user(self.client)
 
     def tearDown(self):
         with self.app.app_context():

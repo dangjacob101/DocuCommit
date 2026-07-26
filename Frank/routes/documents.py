@@ -2,6 +2,7 @@ from flask import Blueprint, jsonify, request, send_file
 
 from docx_generator import generate_docx_from_content
 from models import db, Document, Branch, Commit, Project
+from routes.access import require_owned_document
 from routes.auth import get_current_user
 from utils import make_diff, make_plain_text_diff, reconstruct_branch_content
 
@@ -143,13 +144,9 @@ def get_document(doc_id):
 
 @documents_bp.route("/documents/<int:doc_id>/commits", methods=["GET"])
 def list_document_commits(doc_id):
-    doc_exists = (
-        Document.query.with_entities(Document.id)
-        .filter(Document.id == doc_id)
-        .first()
-    )
-    if doc_exists is None:
-        return jsonify({"error": "document not found"}), 404
+    _, error = require_owned_document(doc_id)
+    if error is not None:
+        return error
 
     rows = (
         db.session.query(
@@ -218,9 +215,9 @@ def update_document(doc_id):
 
 @documents_bp.route("/documents/<int:doc_id>/export", methods=["GET"])
 def export_document(doc_id):
-    doc = Document.query.get(doc_id)
-    if doc is None:
-        return jsonify({"error": "document not found"}), 404
+    doc, error = require_owned_document(doc_id)
+    if error is not None:
+        return error
 
     main_branch = Branch.query.filter_by(document_id=doc.id, is_main=True).first()
     if main_branch is None:

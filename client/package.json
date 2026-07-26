@@ -3,6 +3,9 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "engines": {
+    "node": ">=20.19.0"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -18,23 +21,22 @@
     "@tiptap/extension-superscript": "^3.23.1",
     "@tiptap/extension-text-align": "^3.23.1",
     "@tiptap/extension-text-style": "^3.23.1",
-    "@tiptap/extension-underline": "^3.23.1",
     "@tiptap/pm": "^3.23.1",
     "@tiptap/react": "^3.23.1",
     "@tiptap/starter-kit": "^3.23.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-router-dom": "^7.15.0"
+    "react-router-dom": "7.18.1"
   },
   "devDependencies": {
     "@playwright/test": "^1.60.0",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",
-    "@vitejs/plugin-react": "^4.3.1",
-    "@vitest/ui": "^4.1.5",
+    "@vitejs/plugin-react": "^6.0.4",
+    "@vitest/ui": "^4.1.10",
     "jsdom": "^29.1.1",
-    "vite": "^5.4.0",
-    "vitest": "^4.1.5"
+    "vite": "^8.1.5",
+    "vitest": "^4.1.10"
   }
 }

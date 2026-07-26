@@ -1,6 +1,7 @@
 from flask import Blueprint, jsonify, request
 
-from models import db, Document, Branch, Commit
+from models import db, Branch, Commit
+from routes.access import require_owned_branch, require_owned_document
 from utils import compute_visual_diff, make_diff, make_plain_text_diff, reconstruct_branch_content, extract_plain_text
 
 
@@ -34,15 +35,15 @@ def commit_to_dict(commit):
 
 @branches_bp.route("/documents/<int:doc_id>/branches", methods=["POST"])
 def create_branch(doc_id):
+    doc, error = require_owned_document(doc_id)
+    if error is not None:
+        return error
+
     data = request.get_json(silent=True) or {}
     name = data.get("name")
 
     if not isinstance(name, str) or not name.strip():
         return jsonify({"error": "name is required and must be a non-empty string"}), 400
-
-    doc = Document.query.get(doc_id)
-    if doc is None:
-        return jsonify({"error": "document not found"}), 404
 
     existing = Branch.query.filter_by(document_id=doc_id, name=name.strip()).first()
     if existing:
@@ -81,9 +82,9 @@ def create_branch(doc_id):
 
 @branches_bp.route("/documents/<int:doc_id>/branches", methods=["GET"])
 def list_branches(doc_id):
-    doc = Document.query.get(doc_id)
-    if doc is None:
-        return jsonify({"error": "document not found"}), 404
+    _, error = require_owned_document(doc_id)
+    if error is not None:
+        return error
 
     branches = Branch.query.filter_by(document_id=doc_id).order_by(Branch.id).all()
     return jsonify([branch_to_dict(b) for b in branches])
@@ -91,14 +92,18 @@ def list_branches(doc_id):
 
 @branches_bp.route("/branches/<int:branch_id>", methods=["GET"])
 def get_branch(branch_id):
-    branch = Branch.query.get(branch_id)
-    if branch is None:
-        return jsonify({"error": "branch not found"}), 404
+    branch, error = require_owned_branch(branch_id)
+    if error is not None:
+        return error
     return jsonify(branch_to_dict(branch))
 
 
 @branches_bp.route("/branches/<int:branch_id>/commits", methods=["POST"])
 def create_commit(branch_id):
+    branch, error = require_owned_branch(branch_id)
+    if error is not None:
+        return error
+
     data = request.get_json(silent=True) or {}
     message = data.get("message")
     content = data.get("content")
@@ -108,9 +113,6 @@ def create_commit(branch_id):
     if not isinstance(content, str):
         return jsonify({"error": "content is required and must be a string"}), 400
 
-    branch = Branch.query.get(branch_id)
-    if branch is None:
-        return jsonify({"error": "branch not found"}), 404
     if branch.status != "active":
         return jsonify({"error": "commits can only be added to active branches"}), 409
 
@@ -135,9 +137,9 @@ def create_commit(branch_id):
 
 @branches_bp.route("/branches/<int:branch_id>/commits", methods=["GET"])
 def list_commits(branch_id):
-    branch = Branch.query.get(branch_id)
-    if branch is None:
-        return jsonify({"error": "branch not found"}), 404
+    _, error = require_owned_branch(branch_id)
+    if error is not None:
+        return error
 
     commits = Commit.query.filter_by(branch_id=branch_id).order_by(Commit.id).all()
     return jsonify([commit_to_dict(c) for c in commits])
@@ -153,9 +155,9 @@ def diff_branch_vs_main(branch_id):
     Query params:
         w=1  Ignore whitespace differences (like GitHub's ?w=1).
     """
-    branch = Branch.query.get(branch_id)
-    if branch is None:
-        return jsonify({"error": "branch not found"}), 404
+    branch, error = require_owned_branch(branch_id)
+    if error is not None:
+        return error
 
     main_branch = Branch.query.filter_by(
         document_id=branch.document_id, is_main=True

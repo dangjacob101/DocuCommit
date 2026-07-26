@@ -1,13 +1,9 @@
-import bcrypt
 from flask import Flask
 from flask_cors import CORS
 
 from config import Config
 from models import (
     db,
-    User,
-    Document,
-    Project,
     create_missing_indexes,
     migrate_users_schema,
     migrate_documents_project_id,
@@ -42,40 +38,8 @@ def create_app():
         create_missing_indexes()
         migrate_commits_schema()
         migrate_documents_project_id()
-        _seed_default_user()
 
     return app
-
-
-def _seed_default_user():
-    existing = User.query.filter(
-        db.func.lower(User.email) == "frank@docucommit.com"
-    ).first()
-
-    if existing is None:
-        hashed = bcrypt.hashpw(
-            "CS35LTeamprofile!".encode("utf-8"),
-            bcrypt.gensalt(),
-        ).decode("utf-8")
-        existing = User(
-            email="frank@docucommit.com",
-            first_name="Frank",
-            last_name="Admin",
-            hashed_password=hashed,
-        )
-        db.session.add(existing)
-        db.session.flush()
-
-    default_proj = Project.query.filter_by(owner_id=existing.id).order_by(Project.id).first()
-    if default_proj is None:
-        default_proj = Project(name="Frank's Workspace", owner_id=existing.id)
-        db.session.add(default_proj)
-        db.session.flush()
-
-    Document.query.filter(Document.owner_id.is_(None)).update(
-        {"owner_id": existing.id, "project_id": default_proj.id}
-    )
-    db.session.commit()
 
 
 app = create_app()

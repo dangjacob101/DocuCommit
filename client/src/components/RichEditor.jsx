@@ -1,6 +1,5 @@
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
-import Underline from '@tiptap/extension-underline'
 import Placeholder from '@tiptap/extension-placeholder'
 import { TextStyle, FontSize } from '@tiptap/extension-text-style'
 import { useEffect, useState } from 'react'
@@ -12,11 +11,17 @@ export default function RichEditor({ content, onUpdate, placeholder }) {
   const editor = useEditor({
     onTransaction: () => forceUpdate(n => n + 1),
     onSelectionUpdate: () => forceUpdate(n => n + 1),
+    editorProps: {
+      attributes: {
+        'aria-label': placeholder || 'Document content',
+        'aria-multiline': 'true',
+        role: 'textbox',
+      },
+    },
     extensions: [
       StarterKit.configure({
         heading: { levels: [1, 2, 3] },
       }),
-      Underline,
       Placeholder.configure({
         placeholder: placeholder || 'Start typing...',
       }),

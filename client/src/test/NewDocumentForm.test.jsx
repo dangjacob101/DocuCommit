@@ -18,10 +18,10 @@ beforeEach(() => {
 })
 
 describe('NewDocumentForm', () => {
-  it('renders a title input and textarea', () => {
+  it('renders a title input and rich-text editor', () => {
     renderForm()
     expect(screen.getByPlaceholderText(/acme services agreement/i)).toBeInTheDocument()
-    expect(screen.getByPlaceholderText(/start typing/i)).toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: /start typing the document/i })).toBeInTheDocument()
   })
 
   it('disables the Save button when the title is empty', () => {
@@ -44,7 +44,7 @@ describe('NewDocumentForm', () => {
     await user.type(screen.getByPlaceholderText(/acme services agreement/i), 'My Contract')
     await user.click(screen.getByRole('button', { name: /save/i }))
     await waitFor(() => {
-      expect(api.createDocument).toHaveBeenCalledWith('My Contract', '')
+      expect(api.createDocument).toHaveBeenCalledWith('My Contract', '', undefined)
       expect(api.listBranches).toHaveBeenCalledWith(1)
     })
   })
